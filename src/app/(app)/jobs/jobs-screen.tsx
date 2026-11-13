@@ -156,7 +156,7 @@ export function JobsScreen({
             searching={pending}
           />
         ) : (
-          <p className="px-10 pb-16 text-sm text-muted">
+          <p className="px-4 sm:px-6 md:px-10 pb-8 sm:pb-16 text-sm text-muted">
             {missingSearch
               ? "That search is no longer kept. Search again, or open one from Past searches."
               : "Search for a role, a skill or a company. Every search is kept with what it found, so you can come back to it without spending another search."}
@@ -234,7 +234,7 @@ function ViewTabs({ view, counts }: { view: JobsView; counts: { searches: number
     { view: "dismissed", label: "Dismissed", href: viewHref("dismissed"), count: counts.dismissed },
   ] as const;
   return (
-    <nav aria-label="Find jobs views" className="flex flex-wrap gap-1.5 px-10 pb-[18px]">
+    <nav aria-label="Find jobs views" className="flex flex-wrap gap-1.5 px-4 sm:px-6 md:px-10 pb-4 sm:pb-[18px]">
       {tabs.map((tab) => (
         <Link
           key={tab.view}

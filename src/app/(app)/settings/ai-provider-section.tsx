@@ -46,6 +46,7 @@ export function AiProviderSection({ initial }: { initial: AiSettingsView }) {
   const [baseUrl, setBaseUrl] = useState(initial.baseUrl);
   const [model, setModel] = useState(initial.model);
   const [keyState, setKeyState] = useState(initial.keyState);
+  const [presets, setPresets] = useState(initial.presets ?? {});
   const [keyInput, setKeyInput] = useState("");
   const [otherModel, setOtherModel] = useState(false);
   const [urlLeft, setUrlLeft] = useState(false);
@@ -78,6 +79,14 @@ export function AiProviderSection({ initial }: { initial: AiSettingsView }) {
     const result = await track(saveAiProvider(value));
     if (result.ok) {
       setKeyState(result.data.keyState);
+      setPresets((prev) => ({
+        ...prev,
+        [value.provider]: {
+          baseUrl: value.baseUrl,
+          model: value.model,
+          keyState: result.data.keyState,
+        },
+      }));
       // A different server may offer different models.
       const server = `${value.provider} ${value.baseUrl}`;
       if (server !== savedServer.current) {
@@ -96,9 +105,20 @@ export function AiProviderSection({ initial }: { initial: AiSettingsView }) {
 
   const chooseProvider = (next: AiProvider) => {
     const nextOption = providerOption(next);
+    const nextPreset = presets[next];
+    const nextUrl = nextPreset?.baseUrl ?? nextOption.defaultUrl;
+    const nextModel = nextPreset?.model ?? nextOption.defaultModel;
+    const nextKey = nextPreset?.keyState ?? (nextOption.apiKey ? "none" : "none");
+
+    setPresets((prev) => ({
+      ...prev,
+      [provider]: { baseUrl, model, keyState },
+    }));
+
     setProvider(next);
-    setBaseUrl(nextOption.defaultUrl);
-    setModel(nextOption.defaultModel);
+    setBaseUrl(nextUrl);
+    setModel(nextModel);
+    setKeyState(nextKey);
     setOtherModel(false);
     setUrlLeft(false);
     setKeyInput("");
@@ -110,6 +130,10 @@ export function AiProviderSection({ initial }: { initial: AiSettingsView }) {
     const result = toastResult(await track(saveApiKey({ provider, change })));
     if (!result.ok) return;
     setKeyState(result.data.keyState);
+    setPresets((prev) => ({
+      ...prev,
+      [provider]: { baseUrl, model, keyState: result.data.keyState },
+    }));
     setKeyInput("");
     changed();
     reloadModels();

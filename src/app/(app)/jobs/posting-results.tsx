@@ -456,10 +456,14 @@ function PostingDetail({
   // The posting as first shown; the component is keyed by it.
   const [initial] = useState(posting);
   const [text, setText] = useState<Text>(initial.complete ? { status: "ready", text: initial.description } : { status: "loading" });
+  const fetchedRef = useRef<string | null>(null);
 
   // A source that only sent the start: ask for the rest (E14-2, E14-3).
   useEffect(() => {
     if (initial.complete) return;
+    const key = postingKey(initial);
+    if (fetchedRef.current === key) return;
+    fetchedRef.current = key;
     let current = true;
     void loadFullText({ posting: withoutState(initial) }).then((result) => {
       if (!current) return;

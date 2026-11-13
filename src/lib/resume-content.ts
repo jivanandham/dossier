@@ -37,6 +37,7 @@ export type ResumeContent = {
     skills: string[];
   }[];
   education: { id: string; degree: string; school: string; dates: string; notes: string }[];
+  certifications: { id: string; name: string; issuer: string; dates: string; notes: string }[];
   /** Publications (#218), word for word, in the profile's order. */
   publications: {
     id: string;
@@ -147,6 +148,13 @@ export function resumeContent(
     experience: profile.experience.map((entry) => experience(entry, entry.bullets)),
     projects: profile.projects.map((entry) => project(entry, entry.bullets)),
     education: profile.education.map((entry) => education(entry, entry.notes)),
+    certifications: (profile.certifications ?? []).map((entry) => ({
+      id: entry.id,
+      name: entry.name.trim(),
+      issuer: entry.issuer.trim(),
+      dates: formatDateRange(entry, dates),
+      notes: entry.notes.trim(),
+    })),
     publications: resumePublications(profile.publications).map((entry) => publication(entry, entry.citation)),
     // A line per group, as Profile → Skills shows them (#280).
     skills: skillsText(inEditorOrder(profile.skills)),

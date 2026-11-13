@@ -16,6 +16,7 @@ export type DocumentLabels = {
   projects: string;
   publications: string;
   education: string;
+  certifications?: string;
   skills: string;
   languages: string;
   contact: string;

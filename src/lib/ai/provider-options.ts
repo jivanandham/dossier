@@ -57,6 +57,8 @@ export const PROVIDER_OPTIONS: readonly {
     local: false,
     defaultUrl: "",
     urlPlaceholder: "https://api.openai.com/v1",
+    urlHint:
+      "For Google Gemini: use https://generativelanguage.googleapis.com/v1beta/openai/ with your Google AI Studio API key.",
     defaultModel: "",
     apiKey: { label: "API key" },
   },
@@ -84,6 +86,18 @@ export const PROVIDER_OPTIONS: readonly {
     defaultModel: "mistral-medium-latest",
     apiKey: { label: "API key" },
   },
+  {
+    value: AiProvider.GOOGLE,
+    name: "Google",
+    vendor: "Google",
+    description: "Gemini models through your Google AI Studio API key.",
+    tag: "Hosted · fast · generous free tier",
+    local: false,
+    defaultUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    urlPlaceholder: "https://generativelanguage.googleapis.com/v1beta/openai",
+    defaultModel: "gemini-2.5-flash",
+    apiKey: { label: "API key" },
+  },
 ];
 
 export function providerOption(provider: AiProvider) {
@@ -96,10 +110,18 @@ export const API_KEY_UNREADABLE = "Your saved API key can't be read. Please ente
 /** What Settings may know about the API key: never the key itself. */
 export type KeyState = "none" | "set" | "unreadable" | "env";
 
+/** Preset settings for a single provider. */
+export type ProviderPreset = {
+  baseUrl: string;
+  model: string;
+  keyState: KeyState;
+};
+
 /** What the AI provider section starts from. */
 export type AiSettingsView = {
   provider: AiProvider;
   baseUrl: string;
   model: string;
   keyState: KeyState;
+  presets?: Partial<Record<AiProvider, ProviderPreset>>;
 };

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { fetchPosting } from "@/lib/posting-fetch";
 
 import type { JobSourceAdapter, RequestContext } from "./adapter";
-import { jobSearchError } from "./errors";
+import { jobSearchError, JobSearchError } from "./errors";
 import { requestJson } from "./http";
 import { POSTED_WITHIN, safeLink, type FoundPosting, type SearchPage, type SearchQuery } from "./search";
 import { FREEHIRE_URL } from "./sources";
@@ -128,10 +128,21 @@ function pageOffset(next: string | null): number {
   return Math.max(0, Number(next.slice("offset:".length)) || 0);
 }
 
+async function request(url: URL, context: RequestContext): Promise<unknown> {
+  try {
+    return await requestJson("FREEHIRE", url, { signal: context.signal });
+  } catch (error) {
+    if (error instanceof JobSearchError && error.problem === "key") {
+      throw jobSearchError("changed", "FREEHIRE", { detail: error.detail?.replace(/^FREEHIRE: /, "") });
+    }
+    throw error;
+  }
+}
+
 async function searchPage(query: SearchQuery, _credentials: Record<string, never>, next: string | null, context: RequestContext = {}): Promise<SearchPage> {
   const offset = pageOffset(next);
   const url = searchUrl(query, offset, context.baseUrl);
-  const answer = responseSchema.safeParse(await requestJson("FREEHIRE", url, { signal: context.signal }));
+  const answer = responseSchema.safeParse(await request(url, context));
   if (!answer.success) throw jobSearchError("changed", "FREEHIRE", { detail: `${url.pathname}: unexpected answer` });
 
   const seen = new Set<string>();

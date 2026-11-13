@@ -642,7 +642,7 @@ export function ApplicationView({
         }
       >
         {/* Its underline runs the header's full width, under the padding too. */}
-        <TabsList aria-label="Application" className="-mx-10 px-10">
+        <TabsList aria-label="Application" className="-mx-4 sm:-mx-6 md:-mx-10 px-4 sm:px-6 md:px-10 overflow-x-auto">
           <TabsTrigger value="resume">Resume</TabsTrigger>
           <TabsTrigger value="letter">Cover letter</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
@@ -855,7 +855,7 @@ function PreviewSwitch({ label, checked, onCheckedChange }: { label: string; che
 /** The canvas with a note in place of a document the application doesn't have. */
 function MissingDocument({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-1 justify-center overflow-auto bg-canvas px-10 pt-16 pb-16">
+    <div className="flex flex-1 justify-center overflow-auto bg-canvas px-4 sm:px-6 md:px-10 pt-8 sm:pt-16 pb-16">
       <p className="max-w-[420px] text-center text-muted">{children}</p>
     </div>
   );

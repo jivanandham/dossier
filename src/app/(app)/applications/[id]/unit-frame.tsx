@@ -159,7 +159,7 @@ function UnitEditor({
             onSave(value);
           }
         }}
-        className="max-h-[calc(60vh/var(--preview-scale,1))] w-full resize-y rounded-control border border-primary bg-input px-3 py-2.5 text-control leading-[1.55] text-ink [field-sizing:content] focus-visible:outline-offset-0 disabled:opacity-60"
+        className="max-h-[calc(60vh/var(--preview-scale,1))] w-full resize-y rounded-control border border-primary bg-input px-3.5 py-3 text-[15px] sm:text-base leading-[1.55] text-ink [field-sizing:content] focus-visible:outline-offset-0 disabled:opacity-60"
       />
       <div className="flex items-center justify-end gap-1.5">
         {isBulletUnit(unit.id) && (

@@ -41,9 +41,10 @@ async function currentKeyState(): Promise<KeyState> {
 }
 
 /**
- * Saves the provider, server address and model (SET-1). A key belongs to
- * its provider: switching provider removes it, so it's never sent to
- * another company's server.
+ * Saves the provider, server address and model (SET-1). When switching
+ * provider, the active key, address and model are stashed under the old
+ * provider's slot and the new provider's saved settings (if any) are
+ * loaded — so every provider's configuration is kept and restored on switch.
  */
 export const saveAiProvider = action(
   z.object({
@@ -54,17 +55,55 @@ export const saveAiProvider = action(
   }),
   async ({ provider, baseUrl, model }) => {
     const current = await loadSettings();
+    const switching = current.provider !== null && current.provider !== provider;
+
+    let apiKeyEnc = current.apiKeyEnc;
+    let targetBaseUrl = baseUrl;
+    let targetModel = model;
+    const perProviderUpdates: Record<string, string | null> = {};
+
+    if (switching && current.provider) {
+      // Stash the current active key, address, and model under the old provider's slot.
+      perProviderUpdates[`apiKeyEnc${current.provider}`] = current.apiKeyEnc;
+      perProviderUpdates[`baseUrl${current.provider}`] = current.baseUrl;
+      perProviderUpdates[`model${current.provider}`] = current.model;
+
+      // Restore the new provider's saved key (if any).
+      const newKeySlot = `apiKeyEnc${provider}` as keyof typeof current;
+      apiKeyEnc = (current[newKeySlot] as string | null) ?? null;
+
+      // Restore saved address and model if the switch was triggered with blank defaults.
+      const newUrlSlot = `baseUrl${provider}` as keyof typeof current;
+      const savedUrl = current[newUrlSlot] as string | null;
+      if (!targetBaseUrl && savedUrl) {
+        targetBaseUrl = savedUrl;
+      }
+
+      const newModelSlot = `model${provider}` as keyof typeof current;
+      const savedModel = current[newModelSlot] as string | null;
+      if (!targetModel && savedModel) {
+        targetModel = savedModel;
+      }
+    }
+
+    if (targetBaseUrl) perProviderUpdates[`baseUrl${provider}`] = targetBaseUrl;
+    if (targetModel) perProviderUpdates[`model${provider}`] = targetModel;
+
     await saveSettings({
       provider,
-      baseUrl: baseUrl || null,
-      model: model || null,
-      ...(current.provider !== provider ? { apiKeyEnc: null } : {}),
+      baseUrl: targetBaseUrl || null,
+      model: targetModel || null,
+      apiKeyEnc,
+      ...perProviderUpdates,
     });
-    return { keyState: await currentKeyState() };
+    return {
+      keyState: await currentKeyState(),
+    };
   },
 );
 
-/** Saves a new API key, encrypted (E6-2), or removes it. The key never comes back to the browser. */
+/** Saves a new API key, encrypted (E6-2), or removes it. The key never comes back to the browser.
+ *  Also writes to the provider-specific slot so switching providers preserves the key. */
 export const saveApiKey = action(
   z.object({
     provider: z.enum(AiProvider),
@@ -75,8 +114,11 @@ export const saveApiKey = action(
   }),
   async ({ provider, change }) => {
     const current = await loadSettings();
+    const newEncrypted = applyApiKeyChange(current.apiKeyEnc, change);
+    const perProviderSlot = `apiKeyEnc${provider}`;
     await saveSettings({
-      apiKeyEnc: applyApiKeyChange(current.apiKeyEnc, change),
+      apiKeyEnc: newEncrypted,
+      [perProviderSlot]: newEncrypted,
       // Until now the provider came from DOSSIER_AI_*; the key makes it a saved choice.
       ...(current.provider ? {} : { provider }),
     });

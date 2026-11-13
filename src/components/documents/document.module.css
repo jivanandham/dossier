@@ -55,7 +55,7 @@
   display: flex;
   flex-direction: column;
   gap: calc(var(--u) * 4);
-  margin-bottom: calc(var(--u) * var(--gap));
+  margin-bottom: calc(var(--u) * 8);
 }
 
 .centered .header {
@@ -165,7 +165,7 @@
 
 .sectionTitle {
   padding-bottom: calc(var(--u) * var(--heading-padding));
-  border-bottom: calc(var(--u) * var(--heading-rule)) solid var(--accent);
+  border-bottom: calc(var(--u) * var(--heading-rule)) solid var(--accent-rule, var(--accent));
   font-family: var(--head-font);
   font-size: calc(var(--u) * var(--heading-size));
   font-weight: var(--heading-weight);
@@ -350,7 +350,7 @@
 
 /* Banner: the resume's header and the letter's sender on a block of the accent. */
 .banner :is(.header, .sender) {
-  padding: calc(var(--u) * 22) calc(var(--u) * 24);
+  padding: calc(var(--u) * 14) calc(var(--u) * 20);
   background: var(--accent);
   color: var(--on-accent);
 }
@@ -378,8 +378,8 @@
 }
 
 .sidebarPanel {
-  padding: calc(var(--u) * 14) calc(var(--u) * 12);
-  background: color-mix(in srgb, var(--accent) 7%, #fff);
+  padding: calc(var(--u) * 10) calc(var(--u) * 10);
+  background: #f8fafc;
   box-decoration-break: clone;
 }
 
@@ -525,4 +525,378 @@
     min-height: 0;
     padding: 0;
   }
+
+  .latexPage {
+    width: calc(var(--u) * 640) !important;
+    height: calc(var(--u) * var(--page-height)) !important;
+    max-height: calc(var(--u) * var(--page-height)) !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
+  }
 }
+
+/* ─── XeLaTeX Layout & Styles (matches main.tex) ────────────────────────── */
+
+.latexPage {
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  width: calc(var(--u) * 640) !important;
+  min-height: calc(var(--u) * var(--page-height)) !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  font-family: var(--typeface-lato), 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  font-size: calc(var(--u) * 9.8);
+  line-height: 1.36;
+  box-sizing: border-box;
+}
+
+.latexSidebar {
+  width: calc(var(--u) * 183);
+  flex: 0 0 calc(var(--u) * 183);
+  background: #f8fafc;
+  padding: calc(var(--u) * 12) calc(var(--u) * 12) calc(var(--u) * 14) calc(var(--u) * 26);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 7.5);
+}
+
+.latexPhotoWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: calc(var(--u) * 2);
+  margin-bottom: calc(var(--u) * 2);
+}
+
+.latexPhoto {
+  width: calc(var(--u) * 115);
+  height: calc(var(--u) * 115);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.latexSideSection {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2.5);
+}
+
+.latexSideHeading {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  color: #1e3a8a;
+  font-family: var(--typeface-lato), 'Lato', sans-serif;
+  font-size: calc(var(--u) * 12.5);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.latexSideIcon {
+  width: calc(var(--u) * 12);
+  height: calc(var(--u) * 12);
+  color: #1e3a8a;
+  flex-shrink: 0;
+}
+
+.latexSideRule {
+  width: calc(var(--u) * 137);
+  max-width: 100%;
+  height: calc(var(--u) * 1.5);
+  background-color: #3b82f6;
+  margin-top: calc(var(--u) * 0.5);
+  margin-bottom: calc(var(--u) * 2.5);
+}
+
+.latexContactList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2.6);
+  font-size: calc(var(--u) * 9.2);
+  color: #1e293b;
+}
+
+.latexContactItem {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 5);
+  white-space: nowrap;
+}
+
+.latexContactItem a {
+  color: #1e3a8a;
+  text-decoration: none;
+}
+
+.latexContactIcon {
+  width: calc(var(--u) * 10);
+  height: calc(var(--u) * 10);
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.latexSkillGroups {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3.5);
+}
+
+.latexSkillGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.latexSkillGroupName {
+  color: #1e3a8a;
+  font-weight: 700;
+  font-size: calc(var(--u) * 10);
+}
+
+.latexSkillItems {
+  list-style: none;
+  margin: calc(var(--u) * 1) 0 0 0;
+  padding-left: calc(var(--u) * 8);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  font-size: calc(var(--u) * 9.2);
+  color: #1e293b;
+}
+
+.latexSkillItems li {
+  position: relative;
+}
+
+.latexSkillItems li::before {
+  content: "▸";
+  position: absolute;
+  left: calc(var(--u) * -8);
+  color: #3b82f6;
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.latexLanguages {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2);
+  font-size: calc(var(--u) * 9.5);
+  color: #1e293b;
+}
+
+.latexCert {
+  display: flex;
+  flex-direction: column;
+}
+
+.latexCertName {
+  font-weight: 700;
+  font-size: calc(var(--u) * 9.5);
+  color: #1e293b;
+}
+
+.latexCertIssuer {
+  color: #64748b;
+  font-size: calc(var(--u) * 8.8);
+  margin-top: calc(var(--u) * 1);
+}
+
+.latexMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #ffffff;
+}
+
+.latexBanner {
+  background: #1e3a8a;
+  color: #ffffff;
+  padding: calc(var(--u) * 16) calc(var(--u) * 26) calc(var(--u) * 14) calc(var(--u) * 18);
+  box-sizing: border-box;
+}
+
+.latexName {
+  font-family: var(--typeface-lato), 'Lato', sans-serif;
+  font-size: calc(var(--u) * 28);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.015em;
+  line-height: 1.1;
+  margin: 0;
+}
+
+.latexHeadline {
+  font-size: calc(var(--u) * 13);
+  color: #ffffff;
+  opacity: 0.95;
+  margin-top: calc(var(--u) * 3.5);
+  font-weight: 400;
+}
+
+.latexTagline {
+  font-size: calc(var(--u) * 9.6);
+  color: #ffffff;
+  opacity: 0.88;
+  margin-top: calc(var(--u) * 2.5);
+  font-weight: 400;
+}
+
+.latexMainBody {
+  flex: 1;
+  padding: calc(var(--u) * 8) calc(var(--u) * 26) calc(var(--u) * 8) calc(var(--u) * 18);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 5.2);
+  box-sizing: border-box;
+}
+
+.latexMainSection {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 2.5);
+}
+
+.latexMainHeading {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  color: #1e3a8a;
+  font-family: var(--typeface-lato), 'Lato', sans-serif;
+  font-size: calc(var(--u) * 13.5);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.latexMainIcon {
+  width: calc(var(--u) * 13.5);
+  height: calc(var(--u) * 13.5);
+  color: #1e3a8a;
+  flex-shrink: 0;
+}
+
+.latexMainRule {
+  width: 100%;
+  height: calc(var(--u) * 2);
+  background-color: #3b82f6;
+  margin-top: calc(var(--u) * 0.5);
+  margin-bottom: calc(var(--u) * 2.5);
+}
+
+.latexSummary {
+  font-size: calc(var(--u) * 9.8);
+  line-height: 1.35;
+  color: #1e293b;
+  margin: 0;
+}
+
+.latexRoles {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3.6);
+}
+
+.latexRole {
+  display: flex;
+  flex-direction: column;
+}
+
+.latexRoleHead {
+  display: flex;
+  flex-direction: column;
+}
+
+.latexRoleTitle {
+  font-size: calc(var(--u) * 10.8);
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.latexNormalWeight {
+  font-weight: 400 !important;
+}
+
+.latexRoleSub {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: calc(var(--u) * 9.5);
+  font-style: italic;
+  color: #64748b;
+  margin-top: calc(var(--u) * 0.5);
+}
+
+.latexRoleCompany {
+  font-style: italic;
+}
+
+.latexRoleDates {
+  font-style: italic;
+  white-space: nowrap;
+}
+
+.latexBullets {
+  list-style: none;
+  margin: calc(var(--u) * 1) 0 0 0;
+  padding-left: calc(var(--u) * 10);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 1);
+  font-size: calc(var(--u) * 9.5);
+  line-height: 1.34;
+  color: #1e293b;
+}
+
+.latexBullets li {
+  position: relative;
+}
+
+.latexBullets li::before {
+  content: "•";
+  position: absolute;
+  left: calc(var(--u) * -8);
+  color: #3b82f6;
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+.latexEducation {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 3.5);
+}
+
+.latexEduEntry {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--u) * 0.5);
+}
+
+.latexEduNotes {
+  font-size: calc(var(--u) * 9.2);
+  color: #1e293b;
+  margin-top: calc(var(--u) * 0.5);
+}
+
+.latexInlineIcon {
+  width: calc(var(--u) * 9.5);
+  height: calc(var(--u) * 9.5);
+  vertical-align: -0.1em;
+  display: inline-block;
+  color: inherit;
+}
+
+.latexLink {
+  color: #1e3a8a;
+  text-decoration: underline;
+  text-decoration-thickness: 0.5px;
+}
+

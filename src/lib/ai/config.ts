@@ -5,7 +5,7 @@ import { env, type Env } from "@/lib/env";
 import { loadSettings } from "@/lib/settings-data";
 
 import { API_KEY_UNREADABLE, ApiKeyUnreadable, apiKeyState, decryptApiKey } from "./api-key";
-import type { AiSettingsView, KeyState } from "./provider-options";
+import { PROVIDER_OPTIONS, type AiSettingsView, type KeyState, type ProviderPreset } from "./provider-options";
 
 // Which provider to use and how to reach it (E6-1): what's saved in Settings,
 // or else the DOSSIER_AI_* variables, or else the defaults below.
@@ -26,6 +26,7 @@ export const PROVIDER_DEFAULTS: Record<AiProvider, { baseUrl: string; model: str
   [AiProvider.OPENAI]: { baseUrl: "https://api.openai.com/v1", model: null, timeoutSeconds: 120 },
   [AiProvider.ANTHROPIC]: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-5", timeoutSeconds: 120 },
   [AiProvider.MISTRAL]: { baseUrl: "https://api.mistral.ai/v1", model: "mistral-medium-latest", timeoutSeconds: 120 },
+  [AiProvider.GOOGLE]: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", timeoutSeconds: 120 },
   // As generous as a local model, and loading one can take a while too.
   [AiProvider.LMSTUDIO]: { baseUrl: "http://host.docker.internal:1234", model: null, timeoutSeconds: 300 },
 };
@@ -36,6 +37,7 @@ const FROM_ENV: Record<NonNullable<Env["DOSSIER_AI_PROVIDER"]>, AiProvider> = {
   anthropic: AiProvider.ANTHROPIC,
   mistral: AiProvider.MISTRAL,
   lmstudio: AiProvider.LMSTUDIO,
+  google: AiProvider.GOOGLE,
 };
 
 type SavedSettings = {
@@ -96,11 +98,28 @@ export async function loadAiConfig(): Promise<AiConfig> {
 export async function loadAiSettingsView(): Promise<AiSettingsView> {
   const saved = await loadSettings();
   const config = resolveAiConfig(saved, env);
+
+  const presets: Partial<Record<AiProvider, ProviderPreset>> = {};
+  for (const p of Object.values(AiProvider)) {
+    const opt = PROVIDER_OPTIONS.find((o) => o.value === p);
+    const savedUrl = (saved[`baseUrl${p}` as keyof typeof saved] as string | null) ?? (saved.provider === p ? saved.baseUrl : null);
+    const savedModel = (saved[`model${p}` as keyof typeof saved] as string | null) ?? (saved.provider === p ? saved.model : null);
+    const savedKeyEnc = (saved[`apiKeyEnc${p}` as keyof typeof saved] as string | null) ?? (saved.provider === p ? saved.apiKeyEnc : null);
+
+    const keyState: KeyState = savedKeyEnc ? apiKeyState(savedKeyEnc) : p === config.provider && config.apiKey ? "env" : "none";
+    presets[p] = {
+      baseUrl: savedUrl || opt?.defaultUrl || "",
+      model: savedModel || opt?.defaultModel || "",
+      keyState,
+    };
+  }
+
   return {
     provider: config.provider,
     baseUrl: config.baseUrl,
     model: config.model ?? "",
     keyState: keyStateOf(saved, config),
+    presets,
   };
 }
 
@@ -126,6 +145,6 @@ export async function isAiUsable(): Promise<boolean> {
   if (!(await isAiConfigured())) return false;
   const config = await loadAiConfig();
   if (!config.model || config.apiKeyProblem) return false;
-  const needsKey = config.provider === AiProvider.ANTHROPIC || config.provider === AiProvider.MISTRAL;
+  const needsKey = config.provider === AiProvider.ANTHROPIC || config.provider === AiProvider.MISTRAL || config.provider === AiProvider.GOOGLE;
   return !needsKey || Boolean(config.apiKey);
 }

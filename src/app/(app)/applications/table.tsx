@@ -47,7 +47,7 @@ export function Table({
   const router = useRouter();
   return (
     // Relative, so screen-reader-only text is clipped with the table.
-    <div className="relative mx-10 mb-16 overflow-x-auto rounded-panel border border-line-card bg-card">
+    <div className="relative mx-4 sm:mx-6 md:mx-10 mb-8 sm:mb-16 overflow-x-auto rounded-panel border border-line-card bg-card">
       <table className="w-full min-w-[820px] table-fixed border-collapse text-left">
         <thead>
           <tr className="border-b border-line">

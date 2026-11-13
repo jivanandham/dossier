@@ -24,6 +24,7 @@ function themeStyle(theme: ResolvedTheme, paper: PaperSize): CSSProperties {
     "--head-font": theme.headFamily,
     "--body-font": theme.bodyFamily,
     "--accent": theme.accent,
+    ...(theme.isLatex && { "--accent-rule": "#3b82f6" }),
     "--name-size": name.size,
     "--name-weight": name.weight,
     "--heading-size": heading.size,
@@ -41,6 +42,7 @@ function themeStyle(theme: ResolvedTheme, paper: PaperSize): CSSProperties {
 /** The theme's structure as classes on the page: layout, header, dates and section titles. */
 function themeClasses(theme: ResolvedTheme) {
   return cn(
+    theme.isLatex && styles.latexTheme,
     theme.split && styles.split,
     theme.sidebarEnd && styles.sidebarEnd,
     theme.tintedSidebar && styles.tintedSidebar,

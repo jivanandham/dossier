@@ -46,6 +46,17 @@ export type SourceInfo = {
 };
 
 export const SOURCE_INFO: Record<JobSource, SourceInfo> = {
+  WTTJ: {
+    name: "Welcome to the Jungle",
+    description: "Tech, startup and digital jobs in France and Europe, with full descriptions and company culture profiles.",
+    tag: "France & Europe · free, no key · tech & startups",
+    keyUrl: null,
+    quotaPeriod: null,
+    attribution: "Jobs by Welcome to the Jungle",
+    attributionLink: { home: "https://www.welcometothejungle.com", local: /^www\.welcometothejungle\.com$/ },
+    countries: ["fr", "be", "es", "gb", "de", "ch", "cz", "pt"],
+    radius: false,
+  },
   JSEARCH: {
     name: "JSearch",
     description: "Postings from LinkedIn, Indeed, Glassdoor and company sites, through Google for Jobs.",

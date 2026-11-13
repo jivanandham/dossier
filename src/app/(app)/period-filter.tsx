@@ -24,26 +24,28 @@ export function PeriodFilter({ period, children }: { period: DashboardPeriod; ch
   const [shown, show] = useOptimistic(period);
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3 px-10 pb-5">
+      <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 md:px-10 pb-4 sm:pb-5">
         <span id="period-label" className="text-meta text-muted">
           Showing
         </span>
-        <SegmentedControl
-          aria-labelledby="period-label"
-          size="sm"
-          options={DASHBOARD_PERIODS.map(({ value, label }) => ({ value, label }))}
-          value={shown}
-          onValueChange={(next) => {
-            void rememberDashboardPeriod({ period: next });
-            // The calendar's month stays.
-            const query = new URLSearchParams(params);
-            query.set("period", next);
-            startTransition(() => {
-              show(next);
-              router.replace(`/?${query}`, { scroll: false });
-            });
-          }}
-        />
+        <div className="max-w-full overflow-x-auto pb-1">
+          <SegmentedControl
+            aria-labelledby="period-label"
+            size="sm"
+            options={DASHBOARD_PERIODS.map(({ value, label }) => ({ value, label }))}
+            value={shown}
+            onValueChange={(next) => {
+              void rememberDashboardPeriod({ period: next });
+              // The calendar's month stays.
+              const query = new URLSearchParams(params);
+              query.set("period", next);
+              startTransition(() => {
+                show(next);
+                router.replace(`/?${query}`, { scroll: false });
+              });
+            }}
+          />
+        </div>
       </div>
       <PendingContext value={pending}>{children}</PendingContext>
     </>

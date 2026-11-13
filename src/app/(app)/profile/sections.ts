@@ -39,6 +39,13 @@ export const SECTIONS = [
     hint: "Degrees, courses, certificates: anything that helps tell your story.",
   },
   {
+    id: "certifications",
+    optional: true,
+    label: "Certifications",
+    title: "Certifications",
+    hint: "Professional certifications and licenses.",
+  },
+  {
     id: "publications",
     optional: true,
     label: "Publications",

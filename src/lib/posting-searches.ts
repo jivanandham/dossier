@@ -49,8 +49,17 @@ function ranAtLabel(date: Date, timeZone?: string, now = new Date()): string {
 export async function runSearch(query: SearchQuery): Promise<{ ok: true; id: string } | SearchProblem> {
   const answer = await askSource(query);
   if (!answer.ok) return answer;
+  const seen = new Set<string>();
+  const uniquePostings: FoundPosting[] = [];
+  for (const posting of answer.postings) {
+    const key = postingKey(posting);
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniquePostings.push(posting);
+    }
+  }
   const search = await prisma.postingSearch.create({
-    data: { source: answer.source, query, postings: answer.postings, found: answer.postings.length, next: answer.next },
+    data: { source: answer.source, query, postings: uniquePostings, found: uniquePostings.length, next: answer.next },
     select: { id: true },
   });
   return { ok: true, id: search.id };

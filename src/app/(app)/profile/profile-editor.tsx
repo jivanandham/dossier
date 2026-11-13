@@ -11,6 +11,7 @@ import { factTexts, filledBasics, REQUIRED_BASICS, type EntryOrder, type Profile
 
 import { BasicsSection } from "./basics-section";
 import { EducationSection } from "./education-section";
+import { CertificationsSection } from "./certifications-section";
 import { ExperienceSection } from "./experience-section";
 import { FactsSection } from "./facts-section";
 import { ProjectsSection } from "./projects-section";
@@ -43,6 +44,7 @@ export function ProfileEditor({ initial, section, order }: { initial: ProfileDat
     experience: String(profile.experience.length),
     projects: String(profile.projects.length),
     education: String(profile.education.length),
+    certifications: String(profile.certifications?.length ?? 0),
     publications: String(profile.publications.length),
     references: String(profile.references.length),
     facts: String(factTexts(profile.facts).length),
@@ -61,6 +63,7 @@ export function ProfileEditor({ initial, section, order }: { initial: ProfileDat
     experience: <ExperienceSection profile={profile} update={setProfile} order={order.experience} />,
     projects: <ProjectsSection profile={profile} update={setProfile} order={order.projects} />,
     education: <EducationSection profile={profile} update={setProfile} order={order.education} />,
+    certifications: <CertificationsSection profile={profile} update={setProfile} />,
     publications: <PublicationsSection profile={profile} update={setProfile} />,
     references: <ReferencesSection profile={profile} update={setProfile} />,
     facts: <FactsSection profile={profile} update={setProfile} />,
@@ -84,8 +87,8 @@ export function ProfileEditor({ initial, section, order }: { initial: ProfileDat
         }
       />
 
-      <div className="flex flex-wrap items-start gap-x-12 gap-y-10 px-10 pt-2 pb-20">
-        <div className="flex max-w-[220px] min-w-[200px] flex-[1_1_200px] flex-col gap-6">
+      <div className="flex flex-wrap items-start gap-x-12 gap-y-10 px-4 sm:px-6 md:px-10 pt-2 pb-12 sm:pb-20">
+        <div className="flex w-full md:max-w-[220px] md:min-w-[200px] md:flex-[1_1_200px] flex-col gap-6">
           <StrengthMeter profile={profile} />
           <nav aria-label="Profile sections" className="flex flex-col gap-0.5">
             {SECTIONS.map((entry) => (

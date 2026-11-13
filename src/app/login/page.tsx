@@ -16,7 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   return (
     // The form on the panel's colour, a warm wash on the right.
     <main className="grid min-h-screen bg-surface min-[960px]:grid-cols-2">
-      <div className="flex items-center justify-center px-8 py-12">
+      <div className="flex items-center justify-center px-4 sm:px-8 py-8 sm:py-12">
       <div className="flex w-full max-w-[400px] flex-col gap-8">
         <div className="flex flex-col items-start gap-2">
           <BrandMark className="size-10" />

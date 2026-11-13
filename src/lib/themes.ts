@@ -256,7 +256,9 @@ function documentFamily(font: ThemeFont): string {
 export function resolveTheme(theme: ThemeData, layout: ThemeLayout = theme.layout) {
   const split = hasSidebar(layout);
   const serifHeading = THEME_FONTS[theme.headFont].serif;
+  const isLatex = theme.id === "latex-modern" || theme.name.toLowerCase().includes("latex");
   return {
+    isLatex,
     /** A sidebar layout, the sidebar on either side. */
     split,
     sidebarEnd: layout === ThemeLayout.SPLIT_END,
@@ -295,6 +297,15 @@ export function unitsToMm(units: number, paper: PaperSize): number {
  */
 export function printCss(theme: ThemeData, paper: PaperSize): string {
   const { widthMm, heightMm } = PAPER_SIZES[paper];
+  const isLatex = theme.id === "latex-modern" || theme.name.toLowerCase().includes("latex");
+  if (isLatex) {
+    return [
+      `@page { size: ${widthMm}mm ${heightMm}mm; margin: 0; }`,
+      `:root { --u: ${widthMm / PAGE_WIDTH}mm; }`,
+      "html, body { background: #fff; margin: 0; padding: 0; }",
+      "@media print { nextjs-portal { display: none; } }",
+    ].join("\n");
+  }
   const { paddingY, paddingX } = DENSITIES[theme.density];
   return [
     `@page { size: ${widthMm}mm ${heightMm}mm; margin: ${unitsToMm(paddingY, paper)}mm ${unitsToMm(paddingX, paper)}mm; }`,

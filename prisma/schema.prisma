@@ -140,6 +140,22 @@ model Education {
   updatedAt  DateTime @updatedAt
 }
 
+/// A professional certification or license.
+model Certification {
+  id         String   @id @default(cuid())
+  name       String   @default("")
+  issuer     String   @default("")
+  startYear  Int?
+  startMonth Int?
+  endYear    Int?
+  endMonth   Int?
+  current    Boolean  @default(false)
+  notes      String   @default("")
+  sort       Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 /// Private unless included in a document (PRO-8).
 /// A publication (#218), cited the way its author wants: no citation style is enforced.
 model Publication {
@@ -310,6 +326,8 @@ enum AiProvider {
   MISTRAL
   /// LM Studio on the user's own hardware (#210).
   LMSTUDIO
+  /// Google Gemini models through Google AI Studio (#300).
+  GOOGLE
 }
 
 enum Creativity {
@@ -585,6 +603,7 @@ enum PostingSource {
   ADZUNA
   ARBEITSAGENTUR
   FREEHIRE
+  WTTJ
 }
 
 /// A posting from Find jobs that the user kept (E14-5): saved, dismissed, or

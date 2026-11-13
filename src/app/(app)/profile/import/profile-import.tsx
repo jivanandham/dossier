@@ -124,7 +124,7 @@ export function ProfileImport({
           </Link>
         }
       />
-      <div ref={area} className="flex max-w-[816px] flex-col gap-6 px-10 pb-20">
+      <div ref={area} className="flex max-w-[816px] flex-col gap-6 px-4 sm:px-6 md:px-10 pb-12 sm:pb-20">
         {phase === "choose" && (
           <Card className="flex flex-col items-start gap-5">
             {!aiReady && (

@@ -17,13 +17,14 @@ export async function loadProfileName(): Promise<string> {
  * publications are always in the order set by hand (#218).
  */
 export async function loadProfile(): Promise<ProfileData> {
-  const [fields, skills, languages, experience, projects, education, publications, references, facts, settings] = await Promise.all([
+  const [fields, skills, languages, experience, projects, education, certifications, publications, references, facts, settings] = await Promise.all([
     prisma.profileField.findMany(),
     prisma.skill.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] }),
     prisma.language.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] }),
     prisma.experience.findMany({ include: { skills: { select: { skillId: true } } } }),
     prisma.project.findMany({ include: { skills: { select: { skillId: true } } } }),
     prisma.education.findMany(),
+    prisma.certification.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] }),
     prisma.publication.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] }),
     prisma.reference.findMany({ orderBy: [{ sort: "asc" }, { createdAt: "asc" }] }),
     loadFacts(null),
@@ -65,6 +66,17 @@ export async function loadProfile(): Promise<ProfileData> {
       id: entry.id,
       degree: entry.degree,
       school: entry.school,
+      notes: entry.notes,
+      startYear: entry.startYear,
+      startMonth: entry.startMonth,
+      endYear: entry.endYear,
+      endMonth: entry.endMonth,
+      current: entry.current,
+    })),
+    certifications: inEntryOrder(certifications, "date").map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      issuer: entry.issuer,
       notes: entry.notes,
       startYear: entry.startYear,
       startMonth: entry.startMonth,

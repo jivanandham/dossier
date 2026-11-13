@@ -236,6 +236,19 @@ export const notoSansSc = localFont({
   declarations: [{ prop: "unicode-range", value: "U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF" }],
 });
 
+export const lato = localFont({
+  src: [
+    { path: "./lato/Lato-Regular.ttf", weight: "400", style: "normal" },
+    { path: "./lato/Lato-Bold.ttf", weight: "700", style: "normal" },
+    { path: "./lato/Lato-Italic.ttf", weight: "400", style: "italic" },
+    { path: "./lato/Lato-BoldItalic.ttf", weight: "700", style: "italic" },
+  ],
+  variable: "--typeface-lato",
+  fallback: ["Helvetica", "Arial", "sans-serif"],
+  adjustFontFallback: false,
+  preload: false,
+});
+
 /** Class names that define every --typeface-* variable; set on <html>. */
 export const fontVariables = [
   geist,
@@ -253,6 +266,7 @@ export const fontVariables = [
   workSans,
   spaceGrotesk,
   jetbrainsMono,
+  lato,
   greekSerif,
   greekSans,
   plexSansArabic,

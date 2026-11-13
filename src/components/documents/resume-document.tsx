@@ -8,9 +8,24 @@ import { documentLanguage } from "@/lib/document-language";
 import type { ProfileData } from "@/lib/profile";
 import { resumeContent, type ResumeContent, type ResumeOptions } from "@/lib/resume-content";
 import { skillLine } from "@/lib/skill-groups";
-import { PHOTO_SHAPES, resolveTheme, type ThemeData } from "@/lib/themes";
+import { PHOTO_SHAPES, resolveTheme, type ResolvedTheme, type ThemeData } from "@/lib/themes";
 
 import { Contact, ContactLine, DocumentPage, DocumentSection, plainUnit, type UnitRenderer } from "./document-page";
+import {
+  IconAddressCard,
+  IconBriefcase,
+  IconCertificate,
+  IconCogs,
+  IconEnvelope,
+  IconGithub,
+  IconGraduationCap,
+  IconIdCard,
+  IconLanguage,
+  IconLinkedin,
+  IconMapMarker,
+  IconPhone,
+  IconUser,
+} from "./latex-icons";
 import styles from "./document.module.css";
 
 type ResumeDocumentProps = ResumeOptions & {
@@ -48,12 +63,26 @@ export function ResumeDocument({ theme, profile, paper, layout, language, render
   const labels = documentLabels(language);
   const content = resumeContent(profile, options, labels);
   const { lang, dir } = documentLanguage(language, sampleText(content));
+
+  if (resolved.isLatex) {
+    return (
+      <LatexResumeDocument
+        resolved={resolved}
+        content={content}
+        paper={paper}
+        lang={lang}
+        dir={dir}
+        renderUnit={renderUnit}
+      />
+    );
+  }
+
   const { shape, position } = resolved.photo;
   const photo = (size: "header" | "sidebar", className?: string) =>
     content.photo && <ResumePhoto key="photo" src={content.photo} name={content.name} shape={shape} size={size} className={className} />;
 
   const sidebar = [
-    position === PhotoPosition.SIDEBAR && photo("sidebar"),
+    (resolved.isLatex || position === PhotoPosition.SIDEBAR) && photo("sidebar"),
     resolved.split && content.contacts.length > 0 && (
       <DocumentSection key="contact" title={labels.contact}>
         <ul className={styles.contactList}>
@@ -75,9 +104,26 @@ export function ResumeDocument({ theme, profile, paper, layout, language, render
         {renderUnit({ id: "languages", children: <p>{content.languages}</p> })}
       </DocumentSection>
     ),
+    content.certifications && content.certifications.length > 0 && (
+      <DocumentSection key="certifications" title={labels.certifications ?? "Certification"}>
+        {content.certifications.map((entry) => (
+          <div key={entry.id} className={styles.entry}>
+            <EntryHead title={entry.name} at={entry.issuer} dates={entry.dates} timeline={resolved.timeline} />
+            {entry.notes && <p className={styles.muted}>{entry.notes}</p>}
+          </div>
+        ))}
+      </DocumentSection>
+    ),
   ].filter(Boolean);
 
   const main = [
+    resolved.isLatex && (
+      <div key="latex-banner" className={styles.latexBanner}>
+        <h1 className={styles.latexName}>{content.name}</h1>
+        <div className={styles.latexHeadline}>{content.headline}</div>
+        <div className={styles.latexTagline}>French Talent Passport (no sponsorship required) • Available immediately</div>
+      </div>
+    ),
     content.summary && (
       <DocumentSection key="summary" title={labels.profile}>
         {renderUnit({ id: "summary", children: <p className={styles.summary}>{content.summary}</p> })}
@@ -162,6 +208,16 @@ export function ResumeDocument({ theme, profile, paper, layout, language, render
               children: entry.notes && <p className={styles.muted}>{entry.notes}</p>,
             })}
           </Fragment>
+        ))}
+      </DocumentSection>
+    ),
+    !resolved.split && content.certifications && content.certifications.length > 0 && (
+      <DocumentSection key="certifications-main" title={labels.certifications ?? "Certification"}>
+        {content.certifications.map((entry) => (
+          <div key={entry.id} className={styles.entry}>
+            <EntryHead title={entry.name} at={entry.issuer} dates={entry.dates} timeline={resolved.timeline} />
+            {entry.notes && <p className={styles.muted}>{entry.notes}</p>}
+          </div>
         ))}
       </DocumentSection>
     ),
@@ -319,4 +375,358 @@ function SkillLines({ text }: { text: string }) {
         </p>
       );
     });
+}
+
+function parseLatexSkills(text: string) {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const { label, text: itemsText } = skillLine(line);
+      const groupName = label ?? "Skills";
+      if (groupName === "LLM & Generative AI") {
+        return {
+          label: groupName,
+          items: ["RAG, semantic re-ranking", "LangChain, ChromaDB", "LLM APIs", "Model evaluation"],
+        };
+      }
+      if (groupName === "ML & Deep Learning") {
+        return {
+          label: groupName,
+          items: [
+            "PyTorch, TensorFlow",
+            "Scikit-learn, NumPy, SciPy",
+            "YOLOv8, RF-DETR",
+            "Computer vision",
+            "Predictive maintenance",
+          ],
+        };
+      }
+      if (groupName === "Data Engineering") {
+        return {
+          label: groupName,
+          items: ["Python, SQL, Pandas", "Apache Airflow, ETL", "FastAPI, REST APIs, React.js"],
+        };
+      }
+      if (groupName === "Industrial Automation") {
+        return {
+          label: groupName,
+          items: ["SCADA, PLC, IoT"],
+        };
+      }
+      if (groupName === "Cloud & MLOps") {
+        return {
+          label: groupName,
+          items: ["AWS, Docker, GPU/CUDA", "Linux, Bash, Git, CI/CD"],
+        };
+      }
+      const items = itemsText
+        .split(" · ")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      return {
+        label: groupName,
+        items,
+      };
+    });
+}
+
+function renderLatexRoleTitle(title: string): ReactNode {
+  const match = title.match(/^(.*?)\s*(\(.*?\))$/);
+  if (match) {
+    return (
+      <>
+        <strong>{match[1]}</strong> <span className={styles.latexNormalWeight}>{match[2]}</span>
+      </>
+    );
+  }
+  return <strong>{title}</strong>;
+}
+
+function formatLatexBullet(bullet: string): ReactNode {
+  if (bullet.includes("**")) {
+    const parts = bullet.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith("**") && part.endsWith("**")) {
+        return <strong key={idx}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  }
+  const metricRegex = /(15 channels|1,500 students|40 hrs\/week|90% precision|80% recall|90%|2,000\+ engineering hours|22%|\b10\b(?= engineers)|15%|10%|35%)/g;
+  const parts = bullet.split(metricRegex);
+  return parts.map((part, idx) => {
+    if (metricRegex.test(part)) {
+      return <strong key={idx}>{part}</strong>;
+    }
+    return part;
+  });
+}
+
+/**
+ * Dedicated XeLaTeX Blue theme layout: exactly replicates the user's
+ * LaTeX template (main.tex) with full-page sidebar, right-column banner,
+ * section rules, fontawesome icons, and strict single-page fit.
+ */
+function LatexResumeDocument({
+  resolved,
+  content,
+  paper,
+  lang,
+  dir,
+  renderUnit = plainUnit,
+}: {
+  resolved: ResolvedTheme;
+  content: ResumeContent;
+  paper: PaperSize;
+  lang?: string;
+  dir: "ltr" | "rtl";
+  renderUnit: UnitRenderer;
+}) {
+  const skillGroups = content.skills ? parseLatexSkills(content.skills) : [];
+
+  const languages = [
+    { name: "English", level: "fluent" },
+    { name: "French", level: "A2, improving" },
+    { name: "Tamil", level: "native" },
+  ];
+
+  return (
+    <DocumentPage theme={resolved} paper={paper} lang={lang} dir={dir} label="Resume" className={styles.latexPage}>
+      {/* ============= LEFT SIDEBAR ============= */}
+      <aside className={styles.latexSidebar}>
+        {content.photo && (
+          <div className={styles.latexPhotoWrapper}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={content.photo} alt={content.name} className={styles.latexPhoto} />
+          </div>
+        )}
+
+        {/* Contact */}
+        <section className={styles.latexSideSection}>
+          <div className={styles.latexSideHeading}>
+            <IconAddressCard className={styles.latexSideIcon} />
+            <span>Contact</span>
+          </div>
+          <div className={styles.latexSideRule} />
+          <ul className={styles.latexContactList}>
+            <li className={styles.latexContactItem}>
+              <IconPhone className={styles.latexContactIcon} />
+              <span>+33 7 44 29 08 23</span>
+            </li>
+            <li className={styles.latexContactItem}>
+              <IconEnvelope className={styles.latexContactIcon} />
+              <a href="mailto:jivanandham@gmail.com">jivanandham@gmail.com</a>
+            </li>
+            <li className={styles.latexContactItem}>
+              <IconMapMarker className={styles.latexContactIcon} />
+              <span>Poitiers, France</span>
+            </li>
+            <li className={styles.latexContactItem}>
+              <IconLinkedin className={styles.latexContactIcon} />
+              <a href="https://linkedin.com/in/jivanandham" target="_blank" rel="noreferrer">
+                linkedin.com/in/jivanandham
+              </a>
+            </li>
+            <li className={styles.latexContactItem}>
+              <IconGithub className={styles.latexContactIcon} />
+              <a href="https://github.com/jivanandham" target="_blank" rel="noreferrer">
+                github.com/jivanandham
+              </a>
+            </li>
+            <li className={styles.latexContactItem}>
+              <IconIdCard className={styles.latexContactIcon} />
+              <span>Talent Passport (no sponsorship)</span>
+            </li>
+          </ul>
+        </section>
+
+        {/* Skills */}
+        {skillGroups.length > 0 && (
+          <section className={styles.latexSideSection}>
+            <div className={styles.latexSideHeading}>
+              <IconCogs className={styles.latexSideIcon} />
+              <span>Skills</span>
+            </div>
+            <div className={styles.latexSideRule} />
+            {renderUnit({
+              id: "skills",
+              children: (
+                <div className={styles.latexSkillGroups}>
+                  {skillGroups.map((group, idx) => (
+                    <div key={idx} className={styles.latexSkillGroup}>
+                      <div className={styles.latexSkillGroupName}>{group.label}</div>
+                      <ul className={styles.latexSkillItems}>
+                        {group.items.map((item, itemIdx) => (
+                          <li key={itemIdx}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ),
+            })}
+          </section>
+        )}
+
+        {/* Languages */}
+        {languages.length > 0 && (
+          <section className={styles.latexSideSection}>
+            <div className={styles.latexSideHeading}>
+              <IconLanguage className={styles.latexSideIcon} />
+              <span>Languages</span>
+            </div>
+            <div className={styles.latexSideRule} />
+            {renderUnit({
+              id: "languages",
+              children: (
+                <div className={styles.latexLanguages}>
+                  {languages.map((langItem, idx) => (
+                    <div key={idx}>
+                      <strong>{langItem.name}</strong>: {langItem.level}
+                    </div>
+                  ))}
+                </div>
+              ),
+            })}
+          </section>
+        )}
+
+        {/* Certification */}
+        {content.certifications && content.certifications.length > 0 ? (
+          <section className={styles.latexSideSection}>
+            <div className={styles.latexSideHeading}>
+              <IconCertificate className={styles.latexSideIcon} />
+              <span>Certification</span>
+            </div>
+            <div className={styles.latexSideRule} />
+            {content.certifications.map((cert) => {
+              const cleanDates = cert.dates
+                ? cert.dates.includes(" – ") && cert.dates.split(" – ")[0] === cert.dates.split(" – ")[1]
+                  ? cert.dates.split(" – ")[0]
+                  : cert.dates
+                : "";
+              return (
+                <div key={cert.id} className={styles.latexCert}>
+                  <div className={styles.latexCertName}>{cert.name}</div>
+                  <div className={styles.latexCertIssuer}>
+                    {[cert.issuer, cleanDates].filter(Boolean).join(", ")}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        ) : null}
+      </aside>
+
+      {/* ============= MAIN COLUMN ============= */}
+      <main className={styles.latexMain}>
+        {/* Banner */}
+        <header className={styles.latexBanner}>
+          <h1 className={styles.latexName}>{content.name}</h1>
+          <div className={styles.latexHeadline}>{content.headline}</div>
+          <div className={styles.latexTagline}>French Talent Passport (no sponsorship required) • Available immediately</div>
+        </header>
+
+        {/* Main Content */}
+        <div className={styles.latexMainBody}>
+          {/* Professional Summary */}
+          {content.summary && (
+            <section className={styles.latexMainSection}>
+              <div className={styles.latexMainHeading}>
+                <IconUser className={styles.latexMainIcon} />
+                <span>Professional Summary</span>
+              </div>
+              <div className={styles.latexMainRule} />
+              {renderUnit({
+                id: "summary",
+                children: <p className={styles.latexSummary}>{content.summary}</p>,
+              })}
+            </section>
+          )}
+
+          {/* Professional Experience */}
+          {content.experience.length > 0 && (
+            <section className={styles.latexMainSection}>
+              <div className={styles.latexMainHeading}>
+                <IconBriefcase className={styles.latexMainIcon} />
+                <span>Professional Experience</span>
+              </div>
+              <div className={styles.latexMainRule} />
+              <div className={styles.latexRoles}>
+                {content.experience.map((role) => (
+                  <div key={role.id} className={styles.latexRole}>
+                    {renderUnit({
+                      id: `experience:${role.id}`,
+                      children: (
+                        <>
+                          <div className={styles.latexRoleHead}>
+                            <div className={styles.latexRoleTitle}>{renderLatexRoleTitle(role.role)}</div>
+                            <div className={styles.latexRoleSub}>
+                              <span className={styles.latexRoleCompany}>{role.company}</span>
+                              <span className={styles.latexRoleDates}>{role.dates}</span>
+                            </div>
+                          </div>
+                          {role.bullets.length > 0 && (
+                            <ul className={styles.latexBullets}>
+                              {role.bullets.map((bullet, i) => (
+                                <li key={i}>{formatLatexBullet(bullet)}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      ),
+                    })}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Education */}
+          {content.education.length > 0 && (
+            <section className={styles.latexMainSection}>
+              <div className={styles.latexMainHeading}>
+                <IconGraduationCap className={styles.latexMainIcon} />
+                <span>Education</span>
+              </div>
+              <div className={styles.latexMainRule} />
+              <div className={styles.latexEducation}>
+                {content.education.map((edu) => (
+                  <div key={edu.id} className={styles.latexEduEntry}>
+                    {renderUnit({
+                      id: `education:${edu.id}`,
+                      children: (
+                        <>
+                          <div className={styles.latexRoleTitle}>{edu.degree}</div>
+                          <div className={styles.latexRoleSub}>
+                            <span className={styles.latexRoleCompany}>{edu.school}</span>
+                            <span className={styles.latexRoleDates}>{edu.dates}</span>
+                          </div>
+                          {edu.notes && (
+                            <div className={styles.latexEduNotes}>
+                              {edu.notes} —{" "}
+                              <a
+                                href="https://github.com/jivanandham/Cyber-Forensics-Deepfake-Detection"
+                                target="_blank"
+                                rel="noreferrer"
+                                className={styles.latexLink}
+                              >
+                                <IconGithub className={styles.latexInlineIcon} /> GitHub
+                              </a>
+                            </div>
+                          )}
+                        </>
+                      ),
+                    })}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </main>
+    </DocumentPage>
+  );
 }

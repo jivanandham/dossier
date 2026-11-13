@@ -30,6 +30,8 @@ export function createProvider(config: AiConfig): AIProvider {
       return new MistralProvider(baseUrl, apiKey, model, timeoutMs);
     case AiProvider.LMSTUDIO:
       return new LmStudioProvider(baseUrl, apiKey, model, timeoutMs);
+    case AiProvider.GOOGLE:
+      return new OpenAICompatibleProvider("GOOGLE", baseUrl, apiKey, model, timeoutMs);
   }
 }
 

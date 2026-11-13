@@ -380,6 +380,53 @@ export const restoreEducation = action(educationFields, async (entry) =>
   ),
 );
 
+// ─── Certifications ──────────────────────────────────────────────────────────
+
+const certificationFields = z.object({
+  id,
+  name: text(200),
+  issuer: text(200),
+  notes: text(5000),
+  ...dateSpan,
+});
+
+const certificationItem = (entry: z.infer<typeof certificationFields>) => ({
+  id: entry.id,
+  name: entry.name,
+  issuer: entry.issuer,
+  notes: entry.notes,
+  startYear: entry.startYear,
+  startMonth: entry.startMonth,
+  endYear: entry.endYear,
+  endMonth: entry.endMonth,
+  current: entry.current,
+});
+
+export const createCertification = action(z.object({}), async () => {
+  const sort = await nextSort(prisma.certification);
+  return certificationItem(await prisma.certification.create({ data: { sort } }));
+});
+
+export const saveCertification = action(certificationFields, async ({ id, ...data }) => {
+  await prisma.certification.updateMany({ where: { id }, data });
+  return null;
+});
+
+export const removeCertification = action(z.object({ id }), async ({ id }) => {
+  await prisma.certification.deleteMany({ where: { id } });
+  return null;
+});
+
+export const restoreCertification = action(certificationFields, async (entry) =>
+  certificationItem(
+    await prisma.certification.upsert({
+      where: { id: entry.id },
+      create: { ...entry, sort: await nextSort(prisma.certification) },
+      update: {},
+    }),
+  ),
+);
+
 // ─── Publications (#218) ─────────────────────────────────────────────────────
 
 const publicationFields = z.object({

@@ -129,6 +129,7 @@ export type ProjectItem = DateSpan & {
   skillIds: string[];
 };
 export type EducationItem = DateSpan & { id: string; degree: string; school: string; notes: string };
+export type CertificationItem = DateSpan & { id: string; name: string; issuer: string; notes: string };
 /** A publication (#218): the citation as written, with **bold** and *italic*, and where to read it. */
 export type PublicationItem = { id: string; citation: string; link: string; onResumes: boolean };
 export type ReferenceItem = {
@@ -150,6 +151,7 @@ export type ProfileData = {
   experience: ExperienceItem[];
   projects: ProjectItem[];
   education: EducationItem[];
+  certifications?: CertificationItem[];
   /** In the order set by hand, with the ones kept off resumes too. */
   publications: PublicationItem[];
   references: ReferenceItem[];

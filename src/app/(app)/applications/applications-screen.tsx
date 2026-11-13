@@ -120,7 +120,7 @@ export function ApplicationsScreen({ params, rows, counts, summary, empty, archi
         <FirstApplication />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-3 px-10 pb-[18px]">
+          <div className="flex flex-wrap items-center gap-3 px-4 sm:px-6 md:px-10 pb-4 sm:pb-[18px]">
             <input
               type="search"
               aria-label="Search applications"

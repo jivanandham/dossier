@@ -6,12 +6,13 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { isCurrent, NAV } from "@/lib/nav";
 
-import { useSidebarCollapsed } from "./sidebar-frame";
+import { useCloseMobileSidebar, useSidebarCollapsed } from "./sidebar-frame";
 
 /** The sidebar's navigation, with the current section highlighted. */
 export function NavLinks({ counts }: { counts?: Record<string, number> } = {}) {
   const pathname = usePathname();
   const collapsed = useSidebarCollapsed();
+  const closeMobile = useCloseMobileSidebar();
   return (
     <nav aria-label="Main" className="flex flex-1 flex-col gap-1">
       {NAV.map(({ label, items }, index) => (
@@ -36,22 +37,23 @@ export function NavLinks({ counts }: { counts?: Record<string, number> } = {}) {
               <Link
                 key={href}
                 href={href}
+                onClick={closeMobile}
                 aria-current={active ? "page" : undefined}
                 title={collapsed ? label : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-control px-3 py-1.5 text-sm font-medium hover:bg-hover hover:text-ink motion-safe:transition-colors",
-                  collapsed && "relative justify-center px-1.5",
+                  "flex items-center gap-2 rounded-control px-3 py-2 text-sm font-medium hover:bg-hover hover:text-ink motion-safe:transition-colors",
+                  collapsed && "md:relative md:justify-center md:px-1.5 md:py-2",
                   // One or the other: cn() doesn't merge, so both would leave the CSS order to pick.
                   active ? "bg-hover text-ink" : "text-muted",
                 )}
               >
-                <Icon size={16} aria-hidden="true" className="shrink-0" />
-                <span className={cn(collapsed && "sr-only")}>{label}</span>
+                <Icon size={18} aria-hidden="true" className="shrink-0" />
+                <span className={cn(collapsed && "md:sr-only")}>{label}</span>
                 {counts?.[href] ? (
                   <span
                     className={cn(
                       "ml-auto rounded-full bg-primary px-1.5 text-[11px] leading-[18px] font-semibold text-on-primary",
-                      collapsed && "absolute ml-0 translate-x-2.5 -translate-y-2",
+                      collapsed && "md:absolute md:ml-0 md:translate-x-2.5 md:-translate-y-2",
                     )}
                   >
                     {counts[href]}

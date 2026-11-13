@@ -150,15 +150,20 @@ export const saveAiTimeout = action(
 );
 
 /** The models the saved server offers, for the model select. */
-export const listAiModels = action(z.object({}), async () => {
-  try {
-    const provider = createProvider(await loadAiConfig());
-    return { models: await provider.listModels(AbortSignal.timeout(15_000)), problem: null };
-  } catch (error) {
-    if (error instanceof AiError) return { models: [], problem: error.message };
-    throw error;
-  }
-});
+export const listAiModels = action(
+  z.object({
+    provider: z.enum(AiProvider).nullish(),
+  }),
+  async ({ provider: providerArg }) => {
+    try {
+      const provider = createProvider(await loadAiConfig(providerArg ?? null));
+      return { models: await provider.listModels(AbortSignal.timeout(15_000)), problem: null };
+    } catch (error) {
+      if (error instanceof AiError) return { models: [], problem: error.message };
+      throw error;
+    }
+  },
+);
 
 /** A test connection on a stop-watch has no business waiting minutes. */
 const TEST_TIMEOUT_MS = 60_000;

@@ -28,12 +28,16 @@ export function AiModelSelector({
   const [isCustom, setIsCustom] = useState(() => Boolean(value && !models.includes(value)));
 
   useEffect(() => {
+    const known = getKnownModelsForProvider(provider, defaultModel);
+    setModels(known);
+    setIsCustom(Boolean(value && !known.includes(value)));
+
     let active = true;
-    void listAiModels({})
+    void listAiModels({ provider: provider ?? undefined })
       .then((result) => {
         if (!active || !result?.ok || !result.data?.models?.length) return;
         setModels((current) => {
-          const set = new Set([...current, ...result.data.models]);
+          const set = new Set([...known, ...result.data.models]);
           return Array.from(set);
         });
       })
@@ -43,7 +47,7 @@ export function AiModelSelector({
     return () => {
       active = false;
     };
-  }, [provider]);
+  }, [provider, defaultModel]);
 
   const fallback = defaultModel || "Settings default";
 

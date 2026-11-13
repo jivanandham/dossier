@@ -225,7 +225,7 @@ describe("AgentScreen (E16-6)", () => {
     expect(screen.getByRole("combobox", { name: "Batch processing" })).toHaveValue("5");
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Scoring provider" }), "GOOGLE");
-    expect(saveAgentSettings).toHaveBeenCalledWith({ aiProvider: "GOOGLE" });
+    expect(saveAgentSettings).toHaveBeenCalledWith({ aiProvider: "GOOGLE", aiModel: "gemini-2.5-flash" });
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Batch processing" }), "off");
     expect(saveAgentSettings).toHaveBeenCalledWith({ batchProcessing: false, batchSize: 5 });

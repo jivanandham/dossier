@@ -41,6 +41,12 @@ export const KNOWN_PROVIDER_MODELS: Record<AiProvider, readonly string[]> = {
   ],
 };
 
+/** Returns the recommended default model for a given provider. */
+export function getDefaultModelForProvider(provider: AiProvider | null | undefined): string | null {
+  if (!provider) return null;
+  return KNOWN_PROVIDER_MODELS[provider]?.[0] ?? null;
+}
+
 /** Merges known fallback models with the currently configured model. */
 export function getKnownModelsForProvider(provider: AiProvider | null | undefined, currentModel?: string | null): string[] {
   if (!provider) return currentModel ? [currentModel] : [];

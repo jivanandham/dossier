@@ -16,6 +16,7 @@ import type { JobSource, SearchQuery } from "@/lib/job-search/search";
 import type { Scorer } from "@/lib/scoring/scorers";
 import type { AiProvider } from "@/generated/prisma/enums";
 import { PROVIDER_OPTIONS } from "@/lib/ai/provider-options";
+import { getDefaultModelForProvider } from "@/lib/ai/models";
 import { AiModelSelector } from "@/components/ai-model-selector";
 
 import { saveAgentSettings } from "../agent/actions";
@@ -169,8 +170,9 @@ export function AgentSection({
           hint="Provider used to score new postings."
           value={settings.aiProvider ?? ""}
           onChange={(event) => {
-            const val = event.target.value;
-            change({ aiProvider: val ? (val as AiProvider) : null });
+            const nextProvider = event.target.value ? (event.target.value as AiProvider) : null;
+            const nextModel = getDefaultModelForProvider(nextProvider);
+            change({ aiProvider: nextProvider, aiModel: nextModel });
           }}
         >
           <option value="">Default AI Provider</option>

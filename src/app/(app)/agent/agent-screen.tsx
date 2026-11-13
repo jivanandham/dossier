@@ -15,6 +15,7 @@ import { useJob } from "@/hooks/use-job";
 import type { AgentCandidateView, AgentView } from "@/lib/agent/view";
 import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
 import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
+import { getDefaultModelForProvider } from "@/lib/ai/models";
 import { AiModelSelector } from "@/components/ai-model-selector";
 import type { AiProvider } from "@/generated/prisma/enums";
 
@@ -166,10 +167,12 @@ export function AgentScreen({ view }: { view: AgentView }) {
                   className="rounded-card border border-line bg-card px-2.5 py-1 text-sm text-ink focus:border-accent focus:outline-none"
                   value={agentAiProvider ?? ""}
                   onChange={(e) => {
-                    const val = e.target.value ? (e.target.value as AiProvider) : null;
-                    setAgentAiProvider(val);
+                    const nextProvider = e.target.value ? (e.target.value as AiProvider) : null;
+                    const nextModel = getDefaultModelForProvider(nextProvider);
+                    setAgentAiProvider(nextProvider);
+                    setAgentAiModel(nextModel);
                     startTransition(async () => {
-                      const res = toastResult(await saveAgentSettings({ aiProvider: val }));
+                      const res = toastResult(await saveAgentSettings({ aiProvider: nextProvider, aiModel: nextModel }));
                       if (!res.ok) router.refresh();
                     });
                   }}

@@ -26,6 +26,7 @@ export const PROVIDER_DEFAULTS: Record<AiProvider, { baseUrl: string; model: str
   [AiProvider.ANTHROPIC]: { baseUrl: "https://api.anthropic.com", model: "claude-sonnet-5-5", timeoutSeconds: DEFAULT_TIMEOUT_SECONDS.hosted },
   [AiProvider.MISTRAL]: { baseUrl: "https://api.mistral.ai/v1", model: "mistral-small-2603", timeoutSeconds: DEFAULT_TIMEOUT_SECONDS.hosted },
   [AiProvider.GOOGLE]: { baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", timeoutSeconds: DEFAULT_TIMEOUT_SECONDS.hosted },
+  [AiProvider.NEURALWATT]: { baseUrl: "https://api.neuralwatt.com/v1", model: "neuralwatt-fast", timeoutSeconds: DEFAULT_TIMEOUT_SECONDS.hosted },
   [AiProvider.LMSTUDIO]: { baseUrl: "http://host.docker.internal:1234", model: null, timeoutSeconds: DEFAULT_TIMEOUT_SECONDS.local },
 };
 
@@ -36,6 +37,7 @@ const FROM_ENV: Record<NonNullable<Env["DOSSIER_AI_PROVIDER"]>, AiProvider> = {
   mistral: AiProvider.MISTRAL,
   lmstudio: AiProvider.LMSTUDIO,
   google: AiProvider.GOOGLE,
+  neuralwatt: AiProvider.NEURALWATT,
 };
 
 type SavedSettings = {
@@ -103,9 +105,25 @@ export function sameServer(provider: AiProvider, a: string | null | undefined, b
   return left !== null && left === origin(b);
 }
 
-/** The AI configuration in effect right now. */
-export async function loadAiConfig(): Promise<AiConfig> {
-  return resolveAiConfig(await loadSettings(), env);
+/** The AI configuration in effect right now, or resolved for a specific provider. */
+export async function loadAiConfig(providerOverride?: AiProvider | null, modelOverride?: string | null): Promise<AiConfig> {
+  const saved = await loadSettings();
+  if (!providerOverride || providerOverride === saved.provider) {
+    const config = resolveAiConfig(saved, env);
+    if (modelOverride) return { ...config, model: modelOverride };
+    return config;
+  }
+  const keySlot = `apiKeyEnc${providerOverride}` as keyof typeof saved;
+  const urlSlot = `baseUrl${providerOverride}` as keyof typeof saved;
+  const modelSlot = `model${providerOverride}` as keyof typeof saved;
+  const savedForProvider: SavedSettings = {
+    provider: providerOverride,
+    baseUrl: (saved[urlSlot] as string | null) ?? null,
+    model: modelOverride ?? (saved[modelSlot] as string | null) ?? null,
+    apiKeyEnc: (saved[keySlot] as string | null) ?? null,
+    aiTimeoutSeconds: saved.aiTimeoutSeconds,
+  };
+  return resolveAiConfig(savedForProvider, env);
 }
 
 /**

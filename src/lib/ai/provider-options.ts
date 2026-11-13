@@ -98,6 +98,18 @@ export const PROVIDER_OPTIONS: readonly {
     defaultModel: "gemini-2.5-flash",
     apiKey: { label: "API key" },
   },
+  {
+    value: AiProvider.NEURALWATT,
+    name: "NeuralWatt",
+    vendor: "NeuralWatt",
+    description: "Models through your NeuralWatt API endpoint and key.",
+    tag: "Hosted · high-performance",
+    local: false,
+    defaultUrl: "https://api.neuralwatt.com/v1",
+    urlPlaceholder: "https://api.neuralwatt.com/v1",
+    defaultModel: "neuralwatt-fast",
+    apiKey: { label: "API key" },
+  },
 ];
 
 export function providerOption(provider: AiProvider) {

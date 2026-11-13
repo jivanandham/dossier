@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { JobStatus, Tone } from "@/generated/prisma/enums";
+import { AiProvider, JobStatus, Tone } from "@/generated/prisma/enums";
 import { DOCUMENTS_TO_WRITE } from "@/lib/settings";
 import { action, ActionError } from "@/lib/action";
 import { createApplicationFromDocuments } from "@/lib/application-create";
@@ -72,8 +72,10 @@ export const startWritingDocuments = action(
     tone: z.enum(Tone),
     note: z.string().trim().max(2000),
     write: z.enum(DOCUMENTS_TO_WRITE).default("both"),
+    provider: z.enum(AiProvider).nullable().optional(),
+    model: z.string().nullable().optional(),
   }),
-  async ({ readJobId, details, match, tone, note, write }) => {
+  async ({ readJobId, details, match, tone, note, write, provider, model }) => {
     const reading = await finishedReading(readJobId);
     const orNull = (value: string) => value || null;
     const extracted = {
@@ -86,7 +88,7 @@ export const startWritingDocuments = action(
       salary: orNull(details.salary),
       deadline: orNull(details.deadline),
     };
-    return startJob(writeDocumentsJob, { readJobId, posting: reading.input.posting, extracted, match, tone, note, write });
+    return startJob(writeDocumentsJob, { readJobId, posting: reading.input.posting, extracted, match, tone, note, write, provider, model });
   },
 );
 

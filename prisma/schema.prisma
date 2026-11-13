@@ -379,6 +379,8 @@ enum AiProvider {
   LMSTUDIO
   /// Google Gemini models through Google AI Studio (#300).
   GOOGLE
+  /// NeuralWatt inference API.
+  NEURALWATT
 }
 
 enum Creativity {

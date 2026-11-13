@@ -5,7 +5,8 @@ import { useId } from "react";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
-import { Tone } from "@/generated/prisma/enums";
+import { AiProvider, Tone } from "@/generated/prisma/enums";
+import { PROVIDER_OPTIONS } from "@/lib/ai/provider-options";
 import { DOCUMENTS_TO_WRITE, type DocumentsToWrite } from "@/lib/settings";
 import { TONES } from "@/lib/tones";
 
@@ -18,23 +19,51 @@ export function TailoringCard({
   write,
   tone,
   note,
+  provider,
   onWrite,
   onTone,
   onNote,
+  onProvider,
+  defaultProviderName,
 }: {
   write: DocumentsToWrite;
   tone: Tone;
   note: string;
+  provider: AiProvider | null;
   onWrite: (write: DocumentsToWrite) => void;
   onTone: (tone: Tone) => void;
   onNote: (note: string) => void;
+  onProvider: (provider: AiProvider | null) => void;
+  defaultProviderName?: string;
 }) {
   const writeId = useId();
   const labelId = useId();
   const descriptionId = useId();
+  const providerId = useId();
   return (
     <Card className="flex flex-col gap-5 py-6">
       <h2 className="text-[15px] font-medium">Tailoring</h2>
+      <div className="flex flex-col gap-[9px]">
+        <span id={providerId} className="text-label text-muted">
+          AI Model
+        </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <select
+            id={providerId}
+            value={provider ?? ""}
+            onChange={(e) => onProvider(e.target.value ? (e.target.value as AiProvider) : null)}
+            className="rounded-control border border-line bg-canvas px-3 py-1.5 text-sm font-medium text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+          >
+            <option value="">Default ({defaultProviderName ?? "Settings default"})</option>
+            {PROVIDER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.name} ({opt.defaultModel})
+              </option>
+            ))}
+          </select>
+          <span className="text-meta text-muted">Which model tailors your resume and drafts the cover letter.</span>
+        </div>
+      </div>
       <div className="flex flex-col gap-[9px]">
         <span id={writeId} className="text-label text-muted">
           Write

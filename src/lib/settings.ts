@@ -120,18 +120,21 @@ export const settingsSchema = z.object({
   apiKeyEncMISTRAL: z.string().nullable().catch(null),
   apiKeyEncLMSTUDIO: z.string().nullable().catch(null),
   apiKeyEncGOOGLE: z.string().nullable().catch(null),
+  apiKeyEncNEURALWATT: z.string().nullable().catch(null),
   baseUrlOPENAI: z.string().nullable().catch(null),
   baseUrlANTHROPIC: z.string().nullable().catch(null),
   baseUrlMISTRAL: z.string().nullable().catch(null),
   baseUrlLOCAL: z.string().nullable().catch(null),
   baseUrlLMSTUDIO: z.string().nullable().catch(null),
   baseUrlGOOGLE: z.string().nullable().catch(null),
+  baseUrlNEURALWATT: z.string().nullable().catch(null),
   modelOPENAI: z.string().nullable().catch(null),
   modelANTHROPIC: z.string().nullable().catch(null),
   modelMISTRAL: z.string().nullable().catch(null),
   modelLOCAL: z.string().nullable().catch(null),
   modelLMSTUDIO: z.string().nullable().catch(null),
   modelGOOGLE: z.string().nullable().catch(null),
+  modelNEURALWATT: z.string().nullable().catch(null),
   /** How long one AI request may take, in seconds (public issue 118); null for DOSSIER_AI_TIMEOUT_SECONDS's, or the provider's own. */
   aiTimeoutSeconds: z.coerce.number().int().min(AI_TIMEOUT_LIMITS.min).max(AI_TIMEOUT_LIMITS.max).nullable().catch(null),
   creativity: z.enum(Creativity).catch(Creativity.BALANCED),
@@ -205,6 +208,12 @@ export const settingsSchema = z.object({
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
+  /** Which AI model the job agent uses for scoring; null means default AI provider. */
+  agentAiProvider: z.enum(AiProvider).nullable().catch(null),
+  agentAiModel: z.string().nullable().catch(null),
+  /** Default AI model for new application tailoring; null means default AI provider. */
+  applicationAiProvider: z.enum(AiProvider).nullable().catch(null),
+  applicationAiModel: z.string().nullable().catch(null),
   /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
   agentAutoDraft: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */

@@ -14,8 +14,10 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useJob } from "@/hooks/use-job";
 import type { AgentCandidateView, AgentView } from "@/lib/agent/view";
 import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
+import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
+import type { AiProvider } from "@/generated/prisma/enums";
 
-import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow } from "./actions";
+import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow, saveAgentSettings } from "./actions";
 
 type ScanResult = { message: string };
 type DraftResult = { applicationId: string };
@@ -39,6 +41,7 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const [showBelow, setShowBelow] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<AgentCandidateView | null>(null);
+  const [agentProvider, setAgentProvider] = useState<AiProvider | null>(view.agentAiProvider);
 
   const run = useJob<ScanResult>(runJobId, 0, (job) => {
     if (job.status !== "DONE" && job.status !== "FAILED") return;
@@ -108,6 +111,26 @@ export function AgentScreen({ view }: { view: AgentView }) {
         <Card padding="none" className="px-7 py-2">
           <dl>
             <Fact label="Agent">{view.enabled ? "Enabled" : "Off"}</Fact>
+            <Fact label="Scoring model">
+              <select
+                aria-label="Scoring model"
+                value={agentProvider ?? ""}
+                onChange={(e) => {
+                  const next = e.target.value ? (e.target.value as AiProvider) : null;
+                  setAgentProvider(next);
+                  void saveAgentSettings({ aiProvider: next });
+                  toast(next ? `Job agent will score with ${providerOption(next).name}.` : "Job agent will score with default AI provider.");
+                }}
+                className="rounded-control border border-line bg-canvas px-2 py-0.5 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+              >
+                <option value="">Default ({view.defaultAiProvider ? providerOption(view.defaultAiProvider).name : "Settings default"})</option>
+                {PROVIDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.name} ({opt.defaultModel})
+                  </option>
+                ))}
+              </select>
+            </Fact>
             <Fact label="Enabled searches">{view.searches.filter((search) => search.enabled).length} of {view.searches.length}</Fact>
             <Fact label="Last run">
               {view.lastRun ? (

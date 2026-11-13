@@ -6,6 +6,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 import { ArbeitsagenturNote } from "@/components/arbeitsagentur-note";
 import { PageHeader } from "@/components/page-header";
+import { RemoteDirectoriesCard } from "@/components/remote-directories-card";
 import { toast, toastResult } from "@/components/toast";
 import { Button, buttonClassName } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -162,6 +163,10 @@ export function JobsScreen({
               : "Search for a role, a skill or a company. Every search is kept with what it found, so you can come back to it without spending another search."}
           </p>
         )}
+
+        <div className="mx-4 sm:mx-6 md:mx-10 mt-6 mb-12">
+          <RemoteDirectoriesCard query={query} />
+        </div>
       </div>
     </>
   );

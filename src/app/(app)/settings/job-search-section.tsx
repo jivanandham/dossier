@@ -5,6 +5,7 @@ import { useId, useState } from "react";
 
 import { ArbeitsagenturNote } from "@/components/arbeitsagentur-note";
 import { KeyField } from "@/components/key-field";
+import { RemoteDirectoriesCard } from "@/components/remote-directories-card";
 import { useTrackSave } from "@/components/save-tracker";
 import { toastResult } from "@/components/toast";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,8 @@ export function JobSearchSection({ initial }: { initial: JobSearchSettingsView }
           </Card>
         </>
       )}
+
+      <RemoteDirectoriesCard className="mt-8" />
     </>
   );
 }

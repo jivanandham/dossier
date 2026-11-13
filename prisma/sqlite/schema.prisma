@@ -381,6 +381,8 @@ enum AiProvider {
   MISTRAL
   /// LM Studio on the user's own hardware (#210).
   LMSTUDIO
+  /// Google Gemini models through Google AI Studio (#300).
+  GOOGLE
 }
 
 enum Creativity {
@@ -666,6 +668,7 @@ enum PostingSource {
   ADZUNA
   ARBEITSAGENTUR
   FREEHIRE
+  WTTJ
 }
 
 /// A posting from Find jobs that the user kept (E14-5): saved, dismissed, or

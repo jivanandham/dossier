@@ -142,22 +142,6 @@ model Education {
   updatedAt  DateTime @updatedAt
 }
 
-/// A professional certification or license.
-model Certification {
-  id         String   @id @default(cuid())
-  name       String   @default("")
-  issuer     String   @default("")
-  startYear  Int?
-  startMonth Int?
-  endYear    Int?
-  endMonth   Int?
-  current    Boolean  @default(false)
-  notes      String   @default("")
-  sort       Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
 /// Private unless included in a document (PRO-8).
 /// A certification (#293): what it is, who issued it, when, and how to check it.
 model Certification {

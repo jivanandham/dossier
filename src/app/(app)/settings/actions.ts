@@ -42,13 +42,11 @@ async function currentKeyState(): Promise<KeyState> {
 }
 
 /**
-/**
  * Saves the provider, server address and model (SET-1). When switching
  * provider, the active key, address and model are stashed under the old
  * provider's slot and the new provider's saved settings (if any) are
  * loaded — so every provider's configuration is kept and restored on switch.
  * Changing to a server on another host clears the key for security.
- */
  */
 export const saveAiProvider = action(
   z.object({

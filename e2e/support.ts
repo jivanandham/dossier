@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { crc32, deflateSync } from "node:zlib";
 
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { Pool } from "pg";
 
 // What the end-to-end tests (E11-2) run against: a production build on its
@@ -58,6 +58,8 @@ export function appEnv(): Record<string, string> {
     DOSSIER_USAGE_PING_TEST_URL: `http://localhost:${FAKE_JOBS_PORT}/ping`,
     // Jev is the fake job sources' too, once a spec chooses it in Settings → Scoring (#274).
     DOSSIER_TYPESAFE_TEST_BASE_URL: `http://localhost:${FAKE_JOBS_PORT}/typesafe`,
+    // A production server, so it would ask the project's backend for its notices (E18).
+    DOSSIER_API_URL: `http://localhost:${FAKE_JOBS_PORT}/v1`,
     PORT: String(APP_PORT),
   };
 }
@@ -106,6 +108,17 @@ export async function resetData(): Promise<void> {
 export async function fakeStartupRequests(): Promise<{ url: string; userAgent: string }[]> {
   const response = await fetch(`http://localhost:${FAKE_JOBS_PORT}/startup-requests`);
   return ((await response.json()) as { requests: { url: string; userAgent: string }[] }).requests;
+}
+
+/** What the fake backend answers from now on (E18): these notices, 503, or no answer at all. */
+export async function fakeAnnouncements(announcements: unknown[], answer: "ok" | "down" | "silent" = "ok"): Promise<void> {
+  await fetch(`http://localhost:${FAKE_JOBS_PORT}/announcement-answer`, { method: "POST", body: JSON.stringify({ announcements, answer }) });
+}
+
+/** The requests the fake backend got so far, with their headers. */
+export async function fakeAnnouncementRequests(): Promise<{ url: string; headers: Record<string, string> }[]> {
+  const response = await fetch(`http://localhost:${FAKE_JOBS_PORT}/announcement-requests`);
+  return ((await response.json()) as { requests: { url: string; headers: Record<string, string> }[] }).requests;
 }
 
 /** How many searches the fake JSearch has answered so far (E14-10). */
@@ -197,4 +210,20 @@ export function portraitPng(width = 900, height = 800): Buffer {
     chunk("IDAT", deflateSync(rows)),
     chunk("IEND", Buffer.alloc(0)),
   ]);
+}
+
+/**
+ * A colour as the page draws it, as "#rrggbb": the element's `property`
+ * blended over its parents' backgrounds, which many tokens are see-through
+ * tints of. Opacity isn't counted.
+ */
+export function drawnColor(locator: Locator, property: string): Promise<string> {
+  return locator.evaluate((element, property) => {
+    const parse = (value: string) => value.match(/[\d.]+/g)!.map(Number);
+    // Nearest first, each [r, g, b, alpha?].
+    const layers = [parse(getComputedStyle(element).getPropertyValue(property))];
+    for (let node = element.parentElement; node; node = node.parentElement) layers.push(parse(getComputedStyle(node).backgroundColor));
+    const drawn = layers.reduceRight((below, [r, g, b, alpha = 1]) => [r, g, b].map((channel, i) => channel * alpha + below[i] * (1 - alpha)), [255, 255, 255]);
+    return `#${drawn.map((channel) => Math.round(channel).toString(16).padStart(2, "0")).join("")}`;
+  }, property);
 }

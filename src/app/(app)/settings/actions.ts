@@ -6,10 +6,11 @@ import { z } from "zod";
 
 import { AiProvider, Creativity, DateFormat, JobStatus, PaperSize, Tone } from "@/generated/prisma/enums";
 import { action, ActionError } from "@/lib/action";
+import { lockAgentSearches } from "@/lib/agent/searches";
 import { AiError, createProvider } from "@/lib/ai";
 import { applyApiKeyChange } from "@/lib/ai/api-key";
-import { keyStateOf, loadAiConfig, resolveAiConfig } from "@/lib/ai/config";
-import type { KeyState } from "@/lib/ai/provider-options";
+import { keyStateOf, loadAiConfig, resolveAiConfig, sameServer } from "@/lib/ai/config";
+import { AI_TIMEOUT_LIMITS, type KeyState } from "@/lib/ai/provider-options";
 import { DOCUMENT_LANGUAGES } from "@/lib/document-language";
 import { deleteAllBackups } from "@/lib/backups";
 import { env } from "@/lib/env";
@@ -28,7 +29,7 @@ import { askJev } from "@/lib/scoring/typesafe";
 import { applySecretChange, JOB_SOURCE_KEY, TYPESAFE_KEY } from "@/lib/secrets";
 
 import { seedBuiltIns } from "../../../../prisma/seed/built-ins";
-import { isJobRetention } from "@/lib/settings";
+import { DOCUMENTS_TO_WRITE, isJobRetention } from "@/lib/settings";
 import { loadSettings, saveSettings } from "@/lib/settings-data";
 
 // Settings → AI provider (E6-3). Every field saves on its own, so a test
@@ -41,15 +42,18 @@ async function currentKeyState(): Promise<KeyState> {
 }
 
 /**
+/**
  * Saves the provider, server address and model (SET-1). When switching
  * provider, the active key, address and model are stashed under the old
  * provider's slot and the new provider's saved settings (if any) are
  * loaded — so every provider's configuration is kept and restored on switch.
+ * Changing to a server on another host clears the key for security.
+ */
  */
 export const saveAiProvider = action(
   z.object({
     provider: z.enum(AiProvider),
-    // Saved as typed: a half-typed address is harmless, and the connection test explains a wrong one.
+    // Saved as typed: the connection test explains a wrong address. A half-typed one on another host removes the key too.
     baseUrl: z.string().trim().max(500),
     model: z.string().trim().max(200),
   }),
@@ -61,6 +65,7 @@ export const saveAiProvider = action(
     let targetBaseUrl = baseUrl;
     let targetModel = model;
     const perProviderUpdates: Record<string, string | null> = {};
+    let keyRemoved = false;
 
     if (switching && current.provider) {
       // Stash the current active key, address, and model under the old provider's slot.
@@ -84,6 +89,12 @@ export const saveAiProvider = action(
       if (!targetModel && savedModel) {
         targetModel = savedModel;
       }
+    } else if (!switching) {
+      const keepsKey = current.provider === provider && sameServer(provider, current.baseUrl, baseUrl);
+      if (!keepsKey && current.apiKeyEnc !== null) {
+        apiKeyEnc = null;
+        keyRemoved = true;
+      }
     }
 
     if (targetBaseUrl) perProviderUpdates[`baseUrl${provider}`] = targetBaseUrl;
@@ -98,6 +109,7 @@ export const saveAiProvider = action(
     });
     return {
       keyState: await currentKeyState(),
+      ...(keyRemoved ? { keyRemoved } : {}),
     };
   },
 );
@@ -123,6 +135,19 @@ export const saveApiKey = action(
       ...(current.provider ? {} : { provider }),
     });
     return { keyState: await currentKeyState() };
+  },
+);
+
+/**
+ * How long one AI request may take, in seconds (public issue 118); null goes
+ * back to DOSSIER_AI_TIMEOUT_SECONDS, or the provider's own. A task started
+ * after the change has it.
+ */
+export const saveAiTimeout = action(
+  z.object({ seconds: z.number().int().min(AI_TIMEOUT_LIMITS.min).max(AI_TIMEOUT_LIMITS.max).nullable() }),
+  async ({ seconds }) => {
+    await saveSettings({ aiTimeoutSeconds: seconds });
+    return { seconds };
   },
 );
 
@@ -281,7 +306,7 @@ export const updateSettings = action(
       .optional(),
     fileNamePattern: z.string().max(200).optional(),
     includeRefs: z.boolean().optional(),
-    pageLimit: z.enum(["1", "2", "none"]).optional(),
+    documentsToWrite: z.enum(DOCUMENTS_TO_WRITE).optional(),
     nightlyBackup: z.boolean().optional(),
     jobRetentionHours: z.number().refine(isJobRetention).optional(),
     updateCheck: z.boolean().optional(),
@@ -327,7 +352,10 @@ export const deleteEverything = action(z.object({ confirm: z.literal("DELETE") }
   await disconnectGoogle().catch(() => {});
 
   await prisma.$transaction(async (tx) => {
+    await lockAgentSearches(tx);
     await tx.job.deleteMany();
+    // The tokens each AI request used (#290).
+    await tx.aiUsage.deleteMany();
     // Find jobs' postings and past searches (E14-9, E14-10).
     await tx.posting.deleteMany();
     await tx.postingSearch.deleteMany();
@@ -335,6 +363,7 @@ export const deleteEverything = action(z.object({ confirm: z.literal("DELETE") }
     await tx.claudePaste.deleteMany();
     // What the job agent found (E16).
     await tx.agentCandidate.deleteMany();
+    await tx.agentSearch.deleteMany();
     await tx.postingScore.deleteMany();
     // Startups, and the fingerprints of ones removed for good (#222).
     await tx.startup.deleteMany();
@@ -348,8 +377,10 @@ export const deleteEverything = action(z.object({ confirm: z.literal("DELETE") }
     await tx.skill.deleteMany();
     await tx.language.deleteMany();
     await tx.education.deleteMany();
+    await tx.certification.deleteMany();
     await tx.publication.deleteMany();
     await tx.reference.deleteMany();
+    await tx.customSection.deleteMany();
     await tx.fact.deleteMany();
     await tx.profileField.deleteMany();
     await tx.theme.deleteMany({ where: { builtIn: false } });

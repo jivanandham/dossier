@@ -41,10 +41,11 @@ export function NavLinks({ counts }: { counts?: Record<string, number> } = {}) {
                 aria-current={active ? "page" : undefined}
                 title={collapsed ? label : undefined}
                 className={cn(
-                  "flex items-center gap-2 rounded-control px-3 py-2 text-sm font-medium hover:bg-hover hover:text-ink motion-safe:transition-colors",
+                  "flex items-center gap-2 rounded-control px-3 py-2 text-sm motion-safe:transition-colors",
                   collapsed && "md:relative md:justify-center md:px-1.5 md:py-2",
                   // One or the other: cn() doesn't merge, so both would leave the CSS order to pick.
-                  active ? "bg-hover text-ink" : "text-muted",
+                  // The current page keeps its look under the pointer, as in Profile's and Settings' lists.
+                  active ? "bg-selected font-medium text-ink" : "text-muted hover:bg-hover hover:text-ink",
                 )}
               >
                 <Icon size={18} aria-hidden="true" className="shrink-0" />

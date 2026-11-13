@@ -1,7 +1,9 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { resetData, sql } from "./support";
+import { contrastRatio } from "../src/lib/themes";
+
+import { drawnColor, resetData, sql } from "./support";
 
 // Accessibility (E11-3, PRD §11: WCAG 2.2 AA). axe finds no serious or
 // critical violations on any main screen or in its open states, and focus
@@ -32,6 +34,7 @@ const SCREENS = [
   "/profile?section=experience",
   "/profile?section=projects",
   "/profile?section=education",
+  "/profile?section=certifications",
   "/profile?section=publications",
   "/profile?section=references",
   "/profile?section=facts",
@@ -44,6 +47,7 @@ const SCREENS = [
   "/startups",
   "/agent",
   "/inbox",
+  "/usage",
   // The dashboard's calendar on another month.
   "/?date=2026-11-01",
   "/settings?section=ai",
@@ -177,6 +181,30 @@ test("axe: open menus and dialogs", async ({ page }) => {
   await expectAccessible(page);
 });
 
+test("axe: a resume's sections (#297, #298)", async ({ page }) => {
+  await page.goto("/resume?panel=sections");
+  await expect(page.getByRole("button", { name: "Remove Experience" })).toBeVisible();
+  await expectAccessible(page);
+
+  await page.goto("/profile?section=new");
+  await expect(page.getByRole("textbox", { name: "Section name" })).toBeFocused();
+  await expectAccessible(page);
+
+  await page.goto(application);
+  await page.getByRole("button", { name: /^Sections/ }).click();
+  await expect(page.getByRole("button", { name: "Remove Experience" })).toBeVisible();
+  await expectAccessible(page);
+  await page.keyboard.press("Escape");
+
+  // A section's page under Profile.
+  await page.goto("/profile?section=new");
+  await page.getByRole("button", { name: "Interests" }).click();
+  await page.getByRole("button", { name: "Add section" }).click();
+  await expect(page).toHaveURL(/section=custom/);
+  await page.getByRole("button", { name: "+ Add an item" }).click();
+  await expectAccessible(page);
+});
+
 test("axe: Find jobs with results, and its past searches (E14)", async ({ page }) => {
   await page.goto("/jobs");
   await page.getByRole("search", { name: "Search postings" }).getByRole("button", { name: "Search" }).click();
@@ -251,4 +279,17 @@ test("keyboard: a dialog starts on Cancel and gives focus back", async ({ page }
   await page.keyboard.press("Escape");
   await expect(page.getByRole("alertdialog")).toBeHidden();
   await expect(page.getByRole("button", { name: "More actions" })).toBeFocused();
+});
+
+test("contrast: a segmented control's selected option is marked at 3:1 in both schemes (WCAG 1.4.11)", async ({ page, context, baseURL }) => {
+  for (const scheme of ["light", "dark"]) {
+    await context.addCookies([{ name: "dossier_theme", value: scheme, url: baseURL! }]);
+    await page.goto("/applications");
+    const view = page.getByRole("radiogroup", { name: "View" });
+    const selected = view.getByRole("radio", { checked: true });
+    expect(await selected.evaluate((element) => getComputedStyle(element).borderTopWidth)).toBe("1px");
+    const border = await drawnColor(selected, "border-top-color");
+    expect(contrastRatio(border, await drawnColor(view, "background-color"))).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(border, await drawnColor(selected, "background-color"))).toBeGreaterThanOrEqual(3);
+  }
 });

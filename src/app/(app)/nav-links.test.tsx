@@ -33,6 +33,7 @@ describe("NavLinks", () => {
       "Agent",
       "Applications",
       "Inbox",
+      "Usage",
       "Settings",
     ]);
   });
@@ -43,6 +44,7 @@ describe("NavLinks", () => {
     expect(currentItem("/resume")).toEqual(["Base resume"]);
     expect(currentItem("/jobs")).toEqual(["Find jobs"]);
     expect(currentItem("/startups")).toEqual(["Startups"]);
+    expect(currentItem("/usage")).toEqual(["Usage"]);
     expect(currentItem("/settings")).toEqual(["Settings"]);
   });
 
@@ -50,6 +52,13 @@ describe("NavLinks", () => {
     expect(currentItem("/applications")).toEqual(["Applications"]);
     expect(currentItem("/applications/abc123")).toEqual(["Applications"]);
     expect(currentItem("/new")).toEqual(["Applications"]);
+  });
+
+  it("sets the current section apart from a hovered one, by more than colour", () => {
+    pathname = "/profile";
+    render(<NavLinks />);
+    expect(screen.getByRole("link", { name: "Profile" })).toHaveClass("bg-selected", "font-medium");
+    expect(screen.getByRole("link", { name: "Settings" })).not.toHaveClass("font-medium");
   });
 
   it("doesn't treat a path that only starts with the same letters as a match", () => {

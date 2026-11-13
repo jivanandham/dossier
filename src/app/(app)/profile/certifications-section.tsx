@@ -1,21 +1,23 @@
 "use client";
 
+import { useTrackSave } from "@/components/save-tracker";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useAutosave } from "@/hooks/use-autosave";
-import { formatDateRange, type CertificationItem, type ProfileData } from "@/lib/profile";
+import { formatMonthYear, type CertificationItem, type ProfileData } from "@/lib/profile";
 
-import {
-  createCertification,
-  removeCertification,
-  restoreCertification,
-  saveCertification,
-} from "./actions";
+import { createCertification, removeCertification, reorderCertifications, restoreCertification, saveCertification } from "./actions";
 import { EntryList } from "./entry-list";
 import { MonthYearField } from "./month-year-field";
-import { useTrackSave } from "@/components/save-tracker";
 import type { UpdateProfile } from "./skills-section";
 
+const optional = (label: string) => (
+  <>
+    {label} <span className="font-normal text-muted">(optional)</span>
+  </>
+);
+
+/** The fields of an open certification, autosaved as you type. */
 function CertificationForm({
   entry,
   onChange,
@@ -33,65 +35,65 @@ function CertificationForm({
     <div className="grid grid-cols-2 gap-[18px]" onBlur={flush}>
       <Input
         className="col-span-2"
-        label="Certification name"
-        placeholder="AWS Certified Solutions Architect"
+        label="Certification"
+        placeholder="Certified Accessibility Specialist"
         value={entry.name}
         onChange={(event) => set({ name: event.target.value })}
         autoFocus={autoFocus}
       />
       <Input
         className="col-span-2"
-        label="Issuing organization"
-        placeholder="Amazon Web Services"
+        label="Issued by"
+        placeholder="Inclusive Design Institute"
         value={entry.issuer}
         onChange={(event) => set({ issuer: event.target.value })}
       />
+      <MonthYearField label="Obtained" value={{ month: entry.month, year: entry.year }} onChange={({ month, year }) => set({ month, year })} />
       <MonthYearField
-        label="Issued date"
-        value={{ month: entry.startMonth, year: entry.startYear }}
-        onChange={({ month, year }) => set({ startMonth: month, startYear: year })}
+        label="Expires"
+        value={{ month: entry.expiryMonth, year: entry.expiryYear }}
+        onChange={({ month, year }) => set({ expiryMonth: month, expiryYear: year })}
       />
-      <MonthYearField
-        label="Expiration date (if any)"
-        value={{ month: entry.endMonth, year: entry.endYear }}
-        onChange={({ month, year }) => set({ endMonth: month, endYear: year })}
+      <p className="col-span-2 -mt-2.5 text-label text-muted">Leave Expires empty when it doesn&apos;t run out. Resumes say how long it&apos;s valid.</p>
+      <Input
+        label={optional("Credential ID")}
+        placeholder="IDI-20481"
+        value={entry.credentialId}
+        onChange={(event) => set({ credentialId: event.target.value })}
       />
-      <Textarea
+      <Input
+        label={optional("Link")}
+        placeholder="verify.example.org/IDI-20481"
+        hint="Where an employer can check it. On a PDF, the link can be clicked."
+        value={entry.link}
+        onChange={(event) => set({ link: event.target.value })}
+      />
+      <Checkbox
         className="col-span-2"
-        label="Credential ID or notes"
-        placeholder="Credential ID, score, or skills covered"
-        rows={3}
-        value={entry.notes}
-        onChange={(event) => set({ notes: event.target.value })}
+        label="Show on resumes"
+        hint="Off keeps it in your profile, but leaves it off every resume and out of what the AI reads."
+        checked={entry.onResumes}
+        onChange={(event) => set({ onResumes: event.target.checked })}
       />
     </div>
   );
 }
 
-/** Certifications section: professional credentials and licenses. */
-export function CertificationsSection({
-  profile,
-  update,
-}: {
-  profile: ProfileData;
-  update: UpdateProfile;
-}) {
-  const items = profile.certifications ?? [];
-
+/**
+ * Certifications (#293): their own section next to Education, in the user's
+ * order. Resumes show them as written; the AI never rewrites them.
+ */
+export function CertificationsSection({ profile, update }: { profile: ProfileData; update: UpdateProfile }) {
   return (
     <EntryList
-      items={items}
-      setItems={(change) =>
-        update((current) => ({
-          ...current,
-          certifications: change(current.certifications ?? []),
-        }))
-      }
-      addLabel="Add certification"
+      items={profile.certifications}
+      setItems={(change) => update((current) => ({ ...current, certifications: change(current.certifications) }))}
+      addLabel="Add a certification"
+      ordering={{ mode: "manual", save: (ids) => reorderCertifications({ ids }) }}
       summary={(entry) => ({
         title: entry.name.trim() || "New certification",
         subtitle: entry.issuer.trim(),
-        meta: formatDateRange(entry),
+        meta: entry.onResumes ? formatMonthYear(entry.year, entry.month) || undefined : "Not on resumes",
       })}
       create={() => createCertification({})}
       remove={(entry) => removeCertification({ id: entry.id })}
@@ -102,4 +104,3 @@ export function CertificationsSection({
     />
   );
 }
-

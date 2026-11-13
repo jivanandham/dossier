@@ -12,7 +12,20 @@ import { unitsSchema } from "@/lib/application-data";
 import { fitBand } from "@/lib/fit";
 import { countryCodeFor, countryName } from "@/lib/job-search/countries";
 import { fullText } from "@/lib/job-search/find";
-import { DEFAULT_RADIUS_KM, foundPostingSchema, POSTED_WITHIN, postingText, RADII_KM, type FoundPosting, type PostedWithin, type SearchQuery, type ShownPosting } from "@/lib/job-search/search";
+import {
+  DEFAULT_RADIUS_KM,
+  EXPERIENCE_LEVELS,
+  experienceAskedFor,
+  foundPostingSchema,
+  POSTED_WITHIN,
+  postingText,
+  RADII_KM,
+  type ExperienceLevel,
+  type FoundPosting,
+  type PostedWithin,
+  type SearchQuery,
+  type ShownPosting,
+} from "@/lib/job-search/search";
 import { getJob, startJob } from "@/lib/jobs/runner";
 import { withoutPrivateParts } from "@/lib/letter-frame";
 import { fetchPosting } from "@/lib/posting-fetch";
@@ -21,6 +34,8 @@ import { loadSearch, runSearch, showMoreFor } from "@/lib/posting-searches";
 import { foundFromPosting, storePosting } from "@/lib/postings";
 import { prisma } from "@/lib/prisma";
 import { loadProfile } from "@/lib/profile-data";
+import { withoutSectionsOff } from "@/lib/resume-sections";
+import { loadSettings } from "@/lib/settings-data";
 import { statusInfo } from "@/lib/status";
 import { applyStatusChange } from "@/lib/status-changes";
 import { appVersion } from "@/lib/version";
@@ -40,6 +55,7 @@ const text = (value: unknown): CallToolResult => ({ content: [{ type: "text", te
 const failure = (message: string): CallToolResult => ({ content: [{ type: "text", text: message }], isError: true });
 
 const POSTED = POSTED_WITHIN.map((option) => option.value) as [PostedWithin, ...PostedWithin[]];
+const LEVELS = EXPERIENCE_LEVELS.map((option) => option.value) as [ExperienceLevel, ...ExperienceLevel[]];
 
 /** A posting as Claude sees it in a list: numbered, without its whole text. */
 function postingLine(posting: ShownPosting | FoundPosting, number: number) {
@@ -59,6 +75,13 @@ function postingLine(posting: ShownPosting | FoundPosting, number: number) {
     fit: state?.score ?? undefined,
     snippet: posting.description.replace(/\s+/g, " ").slice(0, 280),
   };
+}
+
+/** "product designer in Berlin (remote only, entry level)": what search_jobs searched. */
+function searchedLine(query: SearchQuery, country: string): string {
+  const level = EXPERIENCE_LEVELS.find((option) => option.value === experienceAskedFor(query));
+  const notes = [query.remoteOnly ? "remote only" : "", level ? level.label.toLowerCase() : ""].filter(Boolean);
+  return `${query.keywords} in ${query.place || country}${notes.length > 0 ? ` (${notes.join(", ")})` : ""}`;
 }
 
 /** The text of a tailored document's parts, in order. */
@@ -114,12 +137,13 @@ async function resolvePosting(source: PostingSource): Promise<ResolvedPosting | 
       place: found.place,
     };
   }
+  // Pasted text is used as it is, with its link kept: a page Dossier can't read, such as one behind a sign-in, mustn't fail it.
+  if (source.posting_text?.trim()) return { text: source.posting_text.trim(), url: source.posting_url ?? "", postingId: null };
   if (source.posting_url) {
     const fetched = await fetchPosting(source.posting_url);
     if (!fetched.ok) return { error: `${fetched.error} Paste the posting's text as posting_text instead.` };
     return { text: fetched.text, url: fetched.url, postingId: null };
   }
-  if (source.posting_text?.trim()) return { text: source.posting_text.trim(), url: "", postingId: null };
   return { error: "Give posting_id, paste_id, search_id and number, posting_url, or posting_text." };
 }
 
@@ -145,10 +169,13 @@ export function createDossierServer(origin: string): McpServer {
     {
       title: "Read the profile",
       description:
-        "The user's profile in Dossier: headline, summary, facts about them, skills, languages, experience, projects, education and publications, with the ids save_application uses. Contact details and links are left out.",
+        "The user's profile in Dossier: headline, summary, facts about them, skills, languages, experience, projects, education, certifications, publications and sections they made, with the ids save_application uses. Contact details and links are left out.",
       annotations: { readOnlyHint: true },
     },
-    async () => text({ ...JSON.parse(profileForPrompt(await loadProfile())), link: linkTo("/profile") }),
+    async () => {
+      const [profile, settings] = await Promise.all([loadProfile(), loadSettings()]);
+      return text({ ...JSON.parse(profileForPrompt(withoutSectionsOff(profile, settings.resumeSections))), link: linkTo("/profile") });
+    },
   );
 
   server.registerTool(
@@ -165,6 +192,13 @@ export function createDossierServer(origin: string): McpServer {
         remote_only: z.boolean().optional().describe("Only remote postings."),
         radius_km: z.literal(RADII_KM).optional(),
         posted_within: z.enum(POSTED).optional().describe("any, day, 3days, week or month. Defaults to month."),
+        experience: z
+          .enum(LEVELS)
+          .optional()
+          .describe(
+            "The experience level, as Find jobs' Level: any, intern, junior (entry level), mid, senior or lead. Defaults to any. " +
+              "Postings for another level are left out, so a page can come back short: more_jobs has the next.",
+          ),
       }),
       annotations: { readOnlyHint: false, openWorldHint: true },
     },
@@ -180,6 +214,8 @@ export function createDossierServer(origin: string): McpServer {
         radiusKm: input.radius_km ?? DEFAULT_RADIUS_KM,
         remoteOnly,
         postedWithin: input.posted_within ?? "month",
+        // Left out rather than "any", as Find jobs does (public issue 100).
+        ...(input.experience ? { experience: input.experience } : {}),
       };
       const ran = await runSearch(query);
       if (!ran.ok) return failure(ran.message);
@@ -187,7 +223,7 @@ export function createDossierServer(origin: string): McpServer {
       if (!search) return failure("The search ran, but couldn't be read back. Try again.");
       return text({
         search_id: search.id,
-        searched: `${query.keywords} in ${query.place || countryName(country)}${query.remoteOnly ? " (remote only)" : ""}`,
+        searched: searchedLine(query, countryName(country)),
         found: search.postings.length,
         more_available: search.next !== null,
         postings: search.postings.map((posting, index) => postingLine(posting, index + 1)),

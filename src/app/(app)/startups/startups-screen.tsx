@@ -120,31 +120,67 @@ export function StartupsScreen({ filter, list, lastRefresh, refreshJobId, city, 
 
         <div className="rounded-panel border border-line-card bg-card px-6 py-5 text-sm">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h3 className="font-serif text-section">European Startup Ecosystem & Discovery Directories</h3>
-            <span className="text-meta text-muted">France & Europe Databases</span>
+            <h3 className="font-serif text-section">Remote Tech Directories — France & Europe</h3>
+            <span className="text-meta text-muted">Verified Remote Job Boards & Ecosystems</span>
           </div>
           <p className="mt-1 text-meta text-muted">
-            Explore broader scale-up rankings, funding rounds, and verified tech ecosystems across France and Europe:
+            High-probability remote search engines, verified EU remote directories, and official scale-up indexes:
           </p>
-          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-meta">
-            <a href="https://lafrenchtech.gouv.fr/en/join-a-start-up-of-our-ecosystem/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              French Tech Next40 / 120 ↗
-            </a>
-            <a href="https://dealroom.co/lists/startups-france/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              Dealroom France & Europe ↗
-            </a>
-            <a href="https://www.eu-startups.com/directory/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              EU-Startups Directory ↗
-            </a>
-            <a href="https://wellfound.com/startups/location/france" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              Wellfound France (Remote) ↗
-            </a>
-            <a href="https://www.f6s.com/companies/france/lo" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              F6S Europe ↗
-            </a>
-            <a href="https://vivatech.com/top-100-rising-european-startups" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
-              VivaTech Top 100 Rising Startups ↗
-            </a>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">France Remote Engines</p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5 text-meta">
+                <a href="https://www.welcometothejungle.com/fr/jobs?refinementList%5Bworkplace%5D%5B%5D=full_remote" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  WTTJ Télétravail total ↗
+                </a>
+                <a href="https://letmestart.fr/offres/lieu/remote" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Let me Start (340+ Remote FR) ↗
+                </a>
+                <a href="https://remotefr.com" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  RemoteFR ↗
+                </a>
+                <a href="https://www.licornesociety.com/startup-lists/startup-scale-up-next40-ft120" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Licorne Society Full Remote ↗
+                </a>
+                <a href="https://jobs.stationf.co" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Station F Jobs ↗
+                </a>
+                <a href="https://www.malt.fr" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Malt (Tech Freelance) ↗
+                </a>
+                <a href="https://www.free-work.com/fr" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Free-Work (Contract/CDI) ↗
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Europe & Global Remote</p>
+              <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1.5 text-meta">
+                <a href="https://euremotejobs.com" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  EU Remote Jobs ↗
+                </a>
+                <a href="https://europeanremote.com" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  European Remote (220+ Firms) ↗
+                </a>
+                <a href="https://remoteworkeurope.eu" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Remote Work Europe ↗
+                </a>
+                <a href="https://wellfound.com/startups/location/france" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Wellfound Remote ↗
+                </a>
+                <a href="https://remoteok.com/remote-europe-jobs" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Remote OK (Europe) ↗
+                </a>
+                <a href="https://himalayas.app/jobs/europe" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Himalayas Europe ↗
+                </a>
+                <a href="https://dealroom.co/lists/startups-france/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+                  Dealroom Scaleups ↗
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </div>

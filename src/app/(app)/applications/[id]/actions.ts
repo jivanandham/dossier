@@ -344,8 +344,9 @@ export const sendMessage = action(
     viewing: z.enum(DocumentKind).nullable(),
     /** The unit picked with "Ask AI". */
     target: z.object({ document: z.enum(DocumentKind), unitId: z.string().min(1) }).nullable(),
+    model: z.string().nullable().optional(),
   }),
-  async ({ id, text, viewing, target }) => {
+  async ({ id, text, viewing, target, model }) => {
     if (!(await prisma.application.count({ where: { id } }))) throw new ActionError(GONE);
 
     if (!viewing && !target) {
@@ -376,7 +377,7 @@ export const sendMessage = action(
       data: { applicationId: id, role: ChatRole.USER, text, targetUnit: targetLabel },
       select: { id: true },
     });
-    const jobId = await startJob(refineJob, { applicationId: id, messageId: message.id, request: text, target, viewing }, { key: refineJobKey(id), applicationId: id });
+    const jobId = await startJob(refineJob, { applicationId: id, messageId: message.id, request: text, target, viewing, model }, { key: refineJobKey(id), applicationId: id });
     refresh(id);
     return { jobId };
   },
@@ -621,15 +622,19 @@ export const restoreVersion = action(z.object({ id: z.string().min(1), versionId
  * while it's being written follows the same job.
  */
 export const startWritingDocument = action(
-  z.object({ id: z.string().min(1), kind: z.enum([DocumentKind.RESUME, DocumentKind.COVER_LETTER]) }),
-  async ({ id, kind }) => {
+  z.object({
+    id: z.string().min(1),
+    kind: z.enum([DocumentKind.RESUME, DocumentKind.COVER_LETTER]),
+    model: z.string().nullable().optional(),
+  }),
+  async ({ id, kind, model }) => {
     const application = await prisma.application.findUnique({ where: { id }, select: { documents: { select: { kind: true } } } });
     if (!application) throw new ActionError(GONE);
     if (application.documents.some((document) => document.kind === kind)) throw new ActionError("It's been written already. Reload the page to see it.");
     if (!(await isAiConfigured())) throw new ActionError("That needs an AI provider. Choose one in Settings → AI provider.");
     const key = writeDocumentJobKey(id, kind);
     const [running] = await findUnfinishedJobs(key);
-    return running?.id ?? startJob(writeDocumentJob, { applicationId: id, kind }, { key, applicationId: id });
+    return running?.id ?? startJob(writeDocumentJob, { applicationId: id, kind, model }, { key, applicationId: id });
   },
 );
 
@@ -653,12 +658,18 @@ export const startScoringResume = action(z.object({ id: z.string().min(1) }), as
  * background and returns the job's id. Asking again while it's being
  * written follows the same job.
  */
-export const startWritingEmail = action(z.object({ id: z.string().min(1) }), async ({ id }) => {
-  if (!(await prisma.application.count({ where: { id } }))) throw new ActionError(GONE);
-  if (!(await isAiConfigured())) throw new ActionError("That needs an AI provider. Choose one in Settings → AI provider.");
-  const [running] = await findUnfinishedJobs(emailJobKey(id));
-  return running?.id ?? startJob(writeEmailJob, { applicationId: id }, { key: emailJobKey(id), applicationId: id });
-});
+export const startWritingEmail = action(
+  z.object({
+    id: z.string().min(1),
+    model: z.string().nullable().optional(),
+  }),
+  async ({ id, model }) => {
+    if (!(await prisma.application.count({ where: { id } }))) throw new ActionError(GONE);
+    if (!(await isAiConfigured())) throw new ActionError("That needs an AI provider. Choose one in Settings → AI provider.");
+    const [running] = await findUnfinishedJobs(emailJobKey(id));
+    return running?.id ?? startJob(writeEmailJob, { applicationId: id, model }, { key: emailJobKey(id), applicationId: id });
+  },
+);
 
 /**
  * Undo on the "Rewrote the email." toast: puts back the email the rewrite

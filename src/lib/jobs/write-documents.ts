@@ -36,11 +36,18 @@ export const writeDocumentsJob = defineJob({
     note: z.string().max(2000),
     /** Which documents to write (#367); the job agent and the connector write both. */
     write: z.enum(DOCUMENTS_TO_WRITE).default("both"),
+    /** Optional model override for the active AI provider. */
+    model: z.string().nullable().optional(),
   }),
   result: z.object({ resume: unitsSchema, resumeWith: z.string(), letter: unitsSchema, letterWith: z.string() }),
-  async run({ posting, extracted, match, tone, note, write }, { step, signal }) {
+  async run({ posting, extracted, match, tone, note, write, model: modelOverride }, { step, signal }) {
     await step(write === "letter" ? WRITE_DOCUMENTS_STEPS[1] : WRITE_DOCUMENTS_STEPS[0]);
-    const [provider, options, fullProfile, settings] = await Promise.all([getAiProvider(), loadTaskOptions(), loadProfile(), loadSettings()]);
+    const [provider, options, fullProfile, settings] = await Promise.all([
+      getAiProvider(modelOverride),
+      loadTaskOptions(),
+      loadProfile(),
+      loadSettings(),
+    ]);
     // A section that's off on the base resume isn't written about (#297).
     const profile = withoutSectionsOff(fullProfile, settings.resumeSections);
     // "Anything I should know?" is the application's first fact (APP-15).

@@ -2,9 +2,11 @@
 
 import { useId } from "react";
 
+import { AiModelSelector } from "@/components/ai-model-selector";
 import { Card } from "@/components/ui/card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
+import type { AiProvider } from "@/generated/prisma/enums";
 import { Tone } from "@/generated/prisma/enums";
 import { DOCUMENTS_TO_WRITE, type DocumentsToWrite } from "@/lib/settings";
 import { TONES } from "@/lib/tones";
@@ -18,16 +20,24 @@ export function TailoringCard({
   write,
   tone,
   note,
+  model,
+  provider,
+  defaultModel,
   onWrite,
   onTone,
   onNote,
+  onModel,
 }: {
   write: DocumentsToWrite;
   tone: Tone;
   note: string;
+  model: string | null;
+  provider?: AiProvider | null;
+  defaultModel?: string | null;
   onWrite: (write: DocumentsToWrite) => void;
   onTone: (tone: Tone) => void;
   onNote: (note: string) => void;
+  onModel: (model: string | null) => void;
 }) {
   const writeId = useId();
   const labelId = useId();
@@ -35,6 +45,18 @@ export function TailoringCard({
   return (
     <Card className="flex flex-col gap-5 py-6">
       <h2 className="text-[15px] font-medium">Tailoring</h2>
+      <div className="flex flex-col gap-[9px]">
+        <span className="text-label text-muted">AI Model</span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <AiModelSelector
+            provider={provider}
+            defaultModel={defaultModel}
+            value={model}
+            onChange={onModel}
+          />
+          <span className="text-meta text-muted">Model used to tailor your documents for this application.</span>
+        </div>
+      </div>
       <div className="flex flex-col gap-[9px]">
         <span id={writeId} className="text-label text-muted">
           Write

@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
-import type { Tone } from "@/generated/prisma/enums";
+import type { AiProvider, Tone } from "@/generated/prisma/enums";
 import { useJob } from "@/hooks/use-job";
 import type { DocumentsToWrite } from "@/lib/settings";
 import { withSkillAdded, type Extracted } from "@/lib/application-data";
@@ -59,6 +59,8 @@ export type Draft = {
   details: Details;
   tone: Tone;
   note: string;
+  /** Optional model override for the active AI provider. */
+  model?: string | null;
   /** Which documents to write (#367); missing in drafts from before, which wrote both. */
   write?: DocumentsToWrite;
   writeJobId: string | null;
@@ -142,6 +144,8 @@ function useLeaveGuard(active: boolean, onLeave: () => void) {
 export type NewApplicationProps = {
   /** Whether an AI provider is set up; without one, the page points to Settings. */
   aiReady: boolean;
+  aiProvider?: AiProvider | null;
+  defaultModel?: string | null;
   /** The Claude connector is on and Dossier has no usable AI model: a Claude chat writes it instead (#221). */
   writeInClaude?: boolean;
   /** Offered through "Use a sample posting" before the first application. */
@@ -159,6 +163,8 @@ export type NewApplicationProps = {
 /** The new application flow (E7): paste → read → review → create. */
 export function NewApplication({
   aiReady,
+  aiProvider = null,
+  defaultModel = null,
   writeInClaude = false,
   samplePosting,
   defaultTone,
@@ -176,6 +182,7 @@ export function NewApplication({
     details: EMPTY_DETAILS,
     tone: defaultTone,
     note: "",
+    model: null,
     write: defaultWrite,
     writeJobId: null,
     postingId: null,
@@ -344,7 +351,15 @@ export function NewApplication({
     if (!draft.read || !draft.readJobId || starting) return;
     setStarting(true);
     const result = toastResult(
-      await startWritingDocuments({ readJobId: draft.readJobId, details: draft.details, match: draft.read.match, tone: draft.tone, note: draft.note, write: draft.write ?? "both" }),
+      await startWritingDocuments({
+        readJobId: draft.readJobId,
+        details: draft.details,
+        match: draft.read.match,
+        tone: draft.tone,
+        note: draft.note,
+        write: draft.write ?? "both",
+        ...(draft.model ? { model: draft.model } : {}),
+      }),
     );
     setStarting(false);
     if (!result.ok) return;
@@ -481,9 +496,13 @@ export function NewApplication({
                 write={draft.write ?? "both"}
                 tone={draft.tone}
                 note={draft.note}
+                model={draft.model ?? null}
+                provider={aiProvider}
+                defaultModel={defaultModel}
                 onWrite={(write) => update({ write })}
                 onTone={(tone) => update({ tone })}
                 onNote={(note) => update({ note })}
+                onModel={(model) => update({ model })}
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button variant="text" onClick={() => update({ step: "paste" })}>

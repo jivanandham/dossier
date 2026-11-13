@@ -72,8 +72,9 @@ export const startWritingDocuments = action(
     tone: z.enum(Tone),
     note: z.string().trim().max(2000),
     write: z.enum(DOCUMENTS_TO_WRITE).default("both"),
+    model: z.string().nullable().optional(),
   }),
-  async ({ readJobId, details, match, tone, note, write }) => {
+  async ({ readJobId, details, match, tone, note, write, model }) => {
     const reading = await finishedReading(readJobId);
     const orNull = (value: string) => value || null;
     const extracted = {
@@ -86,7 +87,7 @@ export const startWritingDocuments = action(
       salary: orNull(details.salary),
       deadline: orNull(details.deadline),
     };
-    return startJob(writeDocumentsJob, { readJobId, posting: reading.input.posting, extracted, match, tone, note, write });
+    return startJob(writeDocumentsJob, { readJobId, posting: reading.input.posting, extracted, match, tone, note, write, model });
   },
 );
 

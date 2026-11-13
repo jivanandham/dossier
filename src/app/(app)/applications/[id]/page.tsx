@@ -163,6 +163,8 @@ export default async function ApplicationPage({ params, searchParams }: PageProp
       score={match && match.items.length > 0 ? matchScore(match) : null}
       initialTab={tabFrom(tab)}
       aiReady={aiReady}
+      aiProvider={settings.provider}
+      defaultModel={settings.model}
       rewriting={rewriting}
       messages={messages}
       refining={refineJobs.at(-1)?.id ?? null}

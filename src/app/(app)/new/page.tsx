@@ -28,6 +28,8 @@ export default async function NewApplicationPage({ searchParams }: PageProps<"/n
   return (
     <NewApplication
       aiReady={aiReady}
+      aiProvider={settings.provider}
+      defaultModel={settings.model}
       writeInClaude={writeInClaude}
       defaultTone={settings.defaultTone}
       defaultWrite={settings.documentsToWrite}

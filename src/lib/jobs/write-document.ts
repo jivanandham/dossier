@@ -33,15 +33,19 @@ export type WritableKind = (typeof WRITABLE)[number];
  */
 export const writeDocumentJob = defineJob({
   type: "write-document",
-  input: z.object({ applicationId: z.string().min(1), kind: z.enum(WRITABLE) }),
+  input: z.object({
+    applicationId: z.string().min(1),
+    kind: z.enum(WRITABLE),
+    model: z.string().nullable().optional(),
+  }),
   result: z.object({ applicationId: z.string() }),
-  async run({ applicationId, kind }, { step, signal }) {
+  async run({ applicationId, kind, model: modelOverride }, { step, signal }) {
     await step(kind === DocumentKind.RESUME ? "Tailoring your resume" : "Writing your cover letter");
     const application = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, include: { documents: { select: { kind: true } } } });
     if (application.documents.some((document) => document.kind === kind)) return { applicationId };
 
     const [provider, options, fullProfile, settings, facts] = await Promise.all([
-      getAiProvider(),
+      getAiProvider(modelOverride),
       loadTaskOptions(),
       loadProfile(),
       loadSettings(),

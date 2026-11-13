@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DocumentKind,
+  type AiProvider,
   type ApplicationStatus,
   type DateFormat,
   type PaperSize,
@@ -180,6 +181,8 @@ export type ApplicationViewProps = {
   initialTab: Tab;
   /** Whether an AI provider is set up; without one, the AI buttons point to Settings. */
   aiReady: boolean;
+  aiProvider?: AiProvider | null;
+  defaultModel?: string | null;
   /** Units being rewritten in the background (E8-4), e.g. since before a reload. */
   rewriting: { jobId: string; document: DocumentKind; unitId: string }[];
   /** The Refine with AI conversation (E8-5), oldest first. */
@@ -227,6 +230,8 @@ export function ApplicationView({
   scoringResume = null,
   initialTab,
   aiReady,
+  aiProvider = null,
+  defaultModel = null,
   rewriting: rewritingAtLoad,
   messages,
   refining,
@@ -426,7 +431,7 @@ export function ApplicationView({
   };
 
   /** Sends a chat message (E8-5); resolves to whether it went. */
-  const send = (text: string) =>
+  const send = (text: string, model?: string | null) =>
     new Promise<boolean>((resolve) => {
       const viewing = onScreen();
       if ((viewing || target) && !aiReady) {
@@ -440,6 +445,7 @@ export function ApplicationView({
           text,
           viewing,
           target: target && { document: target.document, unitId: target.unitId },
+          ...(model ? { model } : {}),
         });
         if (!result.ok) {
           toast(result.error);
@@ -477,11 +483,11 @@ export function ApplicationView({
   };
 
   /** "Write the email" and "Rewrite" on the Email tab: written in the background. */
-  const writeEmail = async () => {
+  const writeEmail = async (model?: string | null) => {
     if (!aiReady) return needsAi();
     if (emailJob) return;
     setEmailJob({ jobId: "", revision: 0 });
-    const result = await startWritingEmail({ id: application.id });
+    const result = await startWritingEmail({ id: application.id, ...(model ? { model } : {}) });
     if (result.ok) setEmailJob({ jobId: result.data, revision: 0 });
     else {
       setEmailJob(null);
@@ -779,7 +785,7 @@ export function ApplicationView({
               />
             </DocumentPreview>
           ) : (
-            <WriteMissingDocument applicationId={application.id} kind={DocumentKind.RESUME} aiReady={aiReady} writing={writingDocuments.resume} />
+            <WriteMissingDocument applicationId={application.id} kind={DocumentKind.RESUME} aiReady={aiReady} writing={writingDocuments.resume} provider={aiProvider} defaultModel={defaultModel} />
           )}
         </TabsContent>
 
@@ -813,7 +819,7 @@ export function ApplicationView({
               />
             </DocumentPreview>
           ) : (
-            <WriteMissingDocument applicationId={application.id} kind={DocumentKind.COVER_LETTER} aiReady={aiReady} writing={writingDocuments.letter} />
+            <WriteMissingDocument applicationId={application.id} kind={DocumentKind.COVER_LETTER} aiReady={aiReady} writing={writingDocuments.letter} provider={aiProvider} defaultModel={defaultModel} />
           )}
         </TabsContent>
 
@@ -826,9 +832,11 @@ export function ApplicationView({
             hint={viewed(DocumentKind.EMAIL) ? undefined : "Hover a part to edit or regenerate it"}
             notice={viewed(DocumentKind.EMAIL) ? versionBanner(viewed(DocumentKind.EMAIL)!) : undefined}
             writing={emailJob !== null}
-            onWrite={() => void writeEmail()}
+            onWrite={(model) => void writeEmail(model)}
             attachments={attachments}
             gmail={gmail && { sender: gmail.sender, sentBefore: gmail.sentBefore }}
+            provider={aiProvider}
+            defaultModel={defaultModel}
           />
         </TabsContent>
 
@@ -871,6 +879,8 @@ export function ApplicationView({
           onSend={send}
           aiReady={aiReady}
           focusRequest={chatFocus}
+          provider={aiProvider}
+          defaultModel={defaultModel}
         >
           {(message) =>
             message.canUndo &&

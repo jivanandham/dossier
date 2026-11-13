@@ -1,11 +1,13 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 
+import { AiModelSelector } from "@/components/ai-model-selector";
 import type { UnitRenderer } from "@/components/documents/document-page";
 import { DownloadPdfButton } from "@/components/documents/download-pdf-button";
 import { toast } from "@/components/toast";
 import { Button, buttonClassName } from "@/components/ui/button";
+import type { AiProvider } from "@/generated/prisma/enums";
 import type { Unit } from "@/lib/application-data";
 import { emailParts, mailtoHref } from "@/lib/application-email";
 import { cn } from "@/lib/cn";
@@ -36,6 +38,8 @@ export function EmailTab({
   onWrite,
   attachments,
   gmail,
+  provider,
+  defaultModel,
 }: {
   applicationId: string;
   /** The email's units; null until it's written. */
@@ -50,11 +54,15 @@ export function EmailTab({
   /** It's being written or rewritten. */
   writing: boolean;
   /** "Write the email" and "Rewrite". */
-  onWrite: () => void;
+  onWrite: (model?: string | null) => void;
   attachments: Attachments;
   /** Sending with Gmail (E15-2): who it sends from, and whether it went out that way before. */
   gmail?: { sender: GmailSender; sentBefore: boolean };
+  provider?: AiProvider | null;
+  defaultModel?: string | null;
 }) {
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
   if (!units) {
     return (
       <div className="flex flex-1 flex-col items-center overflow-auto bg-canvas px-10 pt-11 pb-16">
@@ -64,9 +72,21 @@ export function EmailTab({
             I&apos;ll write a short email to go with your resume and cover letter, to whoever the posting says to send applications
             to. Copy it into your mail app or open it there, and attach the PDFs.
           </p>
-          <Button className="mt-1" aria-disabled={writing || undefined} onClick={() => !writing && onWrite()}>
-            {writing ? "Writing the email…" : "Write the email"}
-          </Button>
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <Button aria-disabled={writing || undefined} onClick={() => !writing && onWrite(selectedModel)}>
+              {writing ? "Writing the email…" : "Write the email"}
+            </Button>
+            <div className="flex items-center gap-1.5 text-xs text-muted">
+              <span>Model:</span>
+              <AiModelSelector
+                size="sm"
+                provider={provider}
+                defaultModel={defaultModel}
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -140,9 +160,18 @@ export function EmailTab({
         <a href={mailtoHref({ to, subject, body })} className={buttonClassName("secondary", "md")}>
           Open in mail app
         </a>
-        <Button variant="text" className="ml-auto" aria-disabled={writing || undefined} onClick={() => !writing && onWrite()}>
-          {writing ? "Rewriting…" : "Rewrite"}
-        </Button>
+        <div className="ml-auto flex items-center gap-2">
+          <AiModelSelector
+            size="sm"
+            provider={provider}
+            defaultModel={defaultModel}
+            value={selectedModel}
+            onChange={setSelectedModel}
+          />
+          <Button variant="text" aria-disabled={writing || undefined} onClick={() => !writing && onWrite(selectedModel)}>
+            {writing ? "Rewriting…" : "Rewrite"}
+          </Button>
+        </div>
       </div>
     </div>
   );

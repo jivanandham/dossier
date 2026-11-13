@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { AiModelSelector } from "@/components/ai-model-selector";
 import { Button } from "@/components/ui/button";
+import type { AiProvider } from "@/generated/prisma/enums";
 import { cn } from "@/lib/cn";
 
 import type { Tab } from "./tabs";
@@ -49,6 +51,8 @@ export function RefinePanel({
   onSend,
   aiReady,
   focusRequest,
+  provider,
+  defaultModel,
   children,
 }: {
   tab: Tab;
@@ -59,14 +63,17 @@ export function RefinePanel({
   target: ChatTarget | null;
   onClearTarget: () => void;
   /** Resolves to whether the message was sent; the box keeps it otherwise. */
-  onSend: (text: string) => Promise<boolean>;
+  onSend: (text: string, model?: string | null) => Promise<boolean>;
   aiReady: boolean;
   /** Goes up when the box should take focus, e.g. after "Ask AI". */
   focusRequest: number;
+  provider?: AiProvider | null;
+  defaultModel?: string | null;
   /** Under each message, by id: e.g. its Undo link (E8-6). */
   children?: (message: ChatEntry) => ReactNode;
 }) {
   const [draft, setDraft] = useState("");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -76,7 +83,7 @@ export function RefinePanel({
   const send = async (text: string) => {
     if (!text.trim() || thinking) return;
     setDraft("");
-    if (!(await onSend(text.trim()))) setDraft(text);
+    if (!(await onSend(text.trim(), selectedModel))) setDraft(text);
   };
 
   return (
@@ -161,8 +168,14 @@ export function RefinePanel({
               }}
               className="w-full resize-none bg-transparent text-sm leading-normal text-ink outline-none placeholder:text-muted"
             />
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted">Enter to send</span>
+            <div className="flex items-center justify-between gap-2">
+              <AiModelSelector
+                size="sm"
+                provider={provider}
+                defaultModel={defaultModel}
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
               <Button size="sm" className="px-3.5 py-[7px]" aria-disabled={thinking || !draft.trim() || undefined} onClick={() => void send(draft)}>
                 Send
               </Button>

@@ -5,6 +5,8 @@ import { useState, useTransition } from "react";
 
 import { toast } from "@/components/toast";
 import { Button } from "@/components/ui/button";
+import { AiModelSelector } from "@/components/ai-model-selector";
+import type { AiProvider } from "@/generated/prisma/enums";
 import { useJob } from "@/hooks/use-job";
 import type { WritableKind } from "@/lib/jobs/write-document";
 
@@ -22,15 +24,20 @@ export function WriteMissingDocument({
   kind,
   aiReady,
   writing,
+  provider,
+  defaultModel,
 }: {
   applicationId: string;
   kind: WritableKind;
   aiReady: boolean;
   /** The job writing it, e.g. since before a reload. */
   writing: string | null;
+  provider?: AiProvider | null;
+  defaultModel?: string | null;
 }) {
   const router = useRouter();
   const [jobId, setJobId] = useState(writing);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [starting, startTransition] = useTransition();
   const job = useJob(jobId, 0, (update) => {
     if (update.status === "DONE") router.refresh();
@@ -43,7 +50,7 @@ export function WriteMissingDocument({
 
   const write = () =>
     startTransition(async () => {
-      const result = await startWritingDocument({ id: applicationId, kind });
+      const result = await startWritingDocument({ id: applicationId, kind, ...(selectedModel ? { model: selectedModel } : {}) });
       if (!result.ok) return toast(result.error);
       setJobId(result.data);
     });
@@ -57,9 +64,21 @@ export function WriteMissingDocument({
             : `This application was created without a ${NAMES[kind]}.${aiReady ? "" : " Writing one needs an AI provider, in Settings → AI provider."}`}
         </p>
         {aiReady && (
-          <Button variant="secondary" disabled={busy} onClick={write}>
-            {busy ? "Writing…" : `Write the ${NAMES[kind]}`}
-          </Button>
+          <div className="flex flex-col items-center gap-2.5">
+            <Button variant="secondary" disabled={busy} onClick={write}>
+              {busy ? "Writing…" : `Write the ${NAMES[kind]}`}
+            </Button>
+            <div className="flex items-center gap-2 text-xs text-muted">
+              <span>Model:</span>
+              <AiModelSelector
+                size="sm"
+                provider={provider}
+                defaultModel={defaultModel}
+                value={selectedModel}
+                onChange={setSelectedModel}
+              />
+            </div>
+          </div>
         )}
       </div>
     </div>

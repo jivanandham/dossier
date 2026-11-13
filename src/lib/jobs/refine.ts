@@ -41,6 +41,7 @@ export const refineJob = defineJob({
     target: unitRef.nullable(),
     /** The document on screen. */
     viewing: z.enum(DocumentKind).nullable(),
+    model: z.string().nullable().optional(),
   }),
   result: z.object({
     /** The AI's reply. */
@@ -48,7 +49,7 @@ export const refineJob = defineJob({
     /** The units it changed, to show them. */
     edited: z.array(unitRef),
   }),
-  async run({ applicationId, messageId, request, target, viewing }, { step, signal }) {
+  async run({ applicationId, messageId, request, target, viewing, model: modelOverride }, { step, signal }) {
     await step("Thinking");
     const application = await prisma.application.findUniqueOrThrow({
       where: { id: applicationId },
@@ -71,7 +72,12 @@ export const refineJob = defineJob({
     );
     const targetUnit = target && unitsOf(target.document).find((unit) => unit.id === target.unitId);
 
-    const [provider, options, profile, facts] = await Promise.all([getAiProvider(), loadTaskOptions(), profileOfApplication(application.frozen), loadFactTexts(applicationId)]);
+    const [provider, options, profile, facts] = await Promise.all([
+      getAiProvider(modelOverride),
+      loadTaskOptions(),
+      profileOfApplication(application.frozen),
+      loadFactTexts(applicationId),
+    ]);
     const { data, promptVersion } = await refineChat(
       provider,
       {

@@ -41,7 +41,11 @@ export function createProvider(config: AiConfig): AIProvider {
   }
 }
 
-/** The provider configured in Settings, or by the DOSSIER_AI_* variables. */
-export async function getAiProvider(): Promise<AIProvider> {
-  return createProvider(await loadAiConfig());
+/** The provider configured in Settings, or by the DOSSIER_AI_* variables, with an optional model override. */
+export async function getAiProvider(modelOverride?: string | null): Promise<AIProvider> {
+  const config = await loadAiConfig();
+  if (modelOverride && modelOverride.trim()) {
+    return createProvider({ ...config, model: modelOverride.trim() });
+  }
+  return createProvider(config);
 }

@@ -31,14 +31,17 @@ export const emailJobKey = (applicationId: string) => `email:${applicationId}`;
  */
 export const writeEmailJob = defineJob({
   type: "write-email",
-  input: z.object({ applicationId: z.string().min(1) }),
+  input: z.object({
+    applicationId: z.string().min(1),
+    model: z.string().nullable().optional(),
+  }),
   result: z.object({
     /** The email as written. */
     units: unitsSchema,
     /** The email it replaced, for Undo; null for the first one. */
     previous: unitsSchema.nullable(),
   }),
-  async run({ applicationId }, { step, signal }) {
+  async run({ applicationId, model: modelOverride }, { step, signal }) {
     await step("Writing the email");
     const application = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, include: { documents: true, startup: { select: { emails: true } } } });
     const unitsOf = (kind: DocumentKind): Unit[] | null => {
@@ -47,7 +50,12 @@ export const writeEmailJob = defineJob({
     };
     const match = matchSchema.safeParse(application.match);
 
-    const [provider, options, profile, facts] = await Promise.all([getAiProvider(), loadTaskOptions(), loadProfile(), loadFactTexts(applicationId)]);
+    const [provider, options, profile, facts] = await Promise.all([
+      getAiProvider(modelOverride),
+      loadTaskOptions(),
+      loadProfile(),
+      loadFactTexts(applicationId),
+    ]);
     const { data, promptVersion } = await writeEmail(
       provider,
       {

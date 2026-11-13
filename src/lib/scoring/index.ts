@@ -9,6 +9,7 @@ import type { PostingFit } from "@/lib/fit";
 import { postingText, type FoundPosting } from "@/lib/job-search/search";
 import type { ProfileData } from "@/lib/profile";
 import { recordUsage } from "@/lib/usage-data";
+import type { AiProvider } from "@/generated/prisma/enums";
 
 import { jevKey, loadScoringConfig, type ScoringConfig } from "./config";
 import { scoreWithJev } from "./jev";
@@ -35,7 +36,10 @@ export async function scoringProblem(config?: ScoringConfig): Promise<string | n
  * The scorer Settings → Scoring chose, set up once for any number of
  * postings. Fails as an AiError when it isn't set up.
  */
-export async function loadPostingScorer(): Promise<PostingScorer> {
+export async function loadPostingScorer(
+  providerOverride?: AiProvider | null,
+  modelOverride?: string | null,
+): Promise<PostingScorer> {
   const config = await loadScoringConfig();
   if (config.scorer === "JEV") {
     const jev = jevKey(config);
@@ -44,7 +48,10 @@ export async function loadPostingScorer(): Promise<PostingScorer> {
     return (posting, profile, signal) => scoreWithJev(posting, profile, { key, signal, onUsage: recordUsage });
   }
   if (!(await isAiConfigured())) throw AiError.config(AI_PROVIDER_MISSING);
-  const [provider, options] = await Promise.all([getAiProvider(), loadTaskOptions()]);
+  const [provider, options] = await Promise.all([
+    getAiProvider(providerOverride, modelOverride),
+    loadTaskOptions(),
+  ]);
   return async (posting, profile, signal) => {
     const { title, company, place, remote, salary } = posting;
     const { data, promptVersion } = await scorePosting(provider, { posting: postingText(posting), title, company, place, remote, salary, profile }, { ...options, signal });

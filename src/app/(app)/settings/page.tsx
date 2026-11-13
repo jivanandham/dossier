@@ -68,6 +68,10 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             maxScores: settings.agentMaxScores,
             maxDrafts: settings.agentMaxDrafts,
             autoDraft: settings.agentAutoDraft,
+            aiProvider: settings.agentAiProvider,
+            aiModel: settings.agentAiModel,
+            batchProcessing: settings.agentBatchProcessing,
+            batchSize: settings.agentBatchSize,
           }}
           searches={await listAgentSearches()}
           suggestedQuery={(await loadSearch())?.query}

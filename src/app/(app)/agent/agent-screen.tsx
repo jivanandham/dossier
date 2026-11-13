@@ -14,8 +14,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useJob } from "@/hooks/use-job";
 import type { AgentCandidateView, AgentView } from "@/lib/agent/view";
 import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
+import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
+import { AiModelSelector } from "@/components/ai-model-selector";
+import type { AiProvider } from "@/generated/prisma/enums";
 
-import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow } from "./actions";
+import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow, saveAgentSettings } from "./actions";
 
 type ScanResult = { message: string };
 type DraftResult = { applicationId: string };
@@ -39,6 +42,10 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const [showBelow, setShowBelow] = useState(false);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [confirming, setConfirming] = useState<AgentCandidateView | null>(null);
+  const [agentAiProvider, setAgentAiProvider] = useState<AiProvider | null>(view.agentAiProvider);
+  const [agentAiModel, setAgentAiModel] = useState<string | null>(view.agentAiModel);
+  const [batchProcessing, setBatchProcessing] = useState(view.agentBatchProcessing);
+  const [batchSize, setBatchSize] = useState(view.agentBatchSize);
 
   const run = useJob<ScanResult>(runJobId, 0, (job) => {
     if (job.status !== "DONE" && job.status !== "FAILED") return;
@@ -122,6 +129,71 @@ export function AgentScreen({ view }: { view: AgentView }) {
             <Fact label="Next run">{view.nextRun ?? "Off"}</Fact>
             <Fact label="Source requests available">{Math.max(0, AGENT_MAX_SOURCE_REQUESTS_PER_DAY - view.sourceRequestsUsed)} of {AGENT_MAX_SOURCE_REQUESTS_PER_DAY} in the rolling 24-hour budget</Fact>
             <Fact label="Whole-batch quota eligibility">{view.nextEligibility} ({view.timeZone})</Fact>
+            <Fact label="Scoring provider">
+              <div className="flex items-center gap-2 sm:justify-end">
+                <select
+                  aria-label="Scoring provider"
+                  className="rounded-card border border-line bg-card px-2.5 py-1 text-sm text-ink focus:border-accent focus:outline-none"
+                  value={agentAiProvider ?? ""}
+                  onChange={(e) => {
+                    const val = e.target.value ? (e.target.value as AiProvider) : null;
+                    setAgentAiProvider(val);
+                    startTransition(async () => {
+                      const res = toastResult(await saveAgentSettings({ aiProvider: val }));
+                      if (!res.ok) router.refresh();
+                    });
+                  }}
+                >
+                  <option value="">Default ({(view.defaultAiProvider ? providerOption(view.defaultAiProvider)?.name : null) ?? "AI provider"})</option>
+                  {PROVIDER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </Fact>
+            <Fact label="Scoring model">
+              <div className="min-w-[220px] sm:ml-auto">
+                <AiModelSelector
+                  provider={agentAiProvider}
+                  defaultModel={agentAiModel}
+                  value={agentAiModel}
+                  onChange={(model) => {
+                    setAgentAiModel(model);
+                    startTransition(async () => {
+                      const res = toastResult(await saveAgentSettings({ aiModel: model }));
+                      if (!res.ok) router.refresh();
+                    });
+                  }}
+                />
+              </div>
+            </Fact>
+            <Fact label="Batch processing">
+              <div className="flex items-center gap-2 sm:justify-end">
+                <select
+                  aria-label="Batch processing"
+                  className="rounded-card border border-line bg-card px-2.5 py-1 text-sm text-ink focus:border-accent focus:outline-none"
+                  value={batchProcessing ? String(batchSize) : "off"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const isBatch = val !== "off";
+                    const size = isBatch ? Number(val) : batchSize;
+                    setBatchProcessing(isBatch);
+                    if (isBatch) setBatchSize(size);
+                    startTransition(async () => {
+                      const res = toastResult(await saveAgentSettings({ batchProcessing: isBatch, batchSize: size }));
+                      if (!res.ok) router.refresh();
+                    });
+                  }}
+                >
+                  <option value="off">Off (Sequential)</option>
+                  <option value="3">Batch (3 concurrent)</option>
+                  <option value="5">Batch (5 concurrent) [Recommended]</option>
+                  <option value="10">Batch (10 concurrent)</option>
+                </select>
+              </div>
+            </Fact>
           </dl>
           {running && (
             <p role="status" className="border-t border-line py-3.5 text-sm text-muted">

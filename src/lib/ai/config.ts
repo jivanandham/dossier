@@ -105,9 +105,25 @@ export function sameServer(provider: AiProvider, a: string | null | undefined, b
   return left !== null && left === origin(b);
 }
 
-/** The AI configuration in effect right now. */
-export async function loadAiConfig(): Promise<AiConfig> {
-  return resolveAiConfig(await loadSettings(), env);
+/** The AI configuration in effect right now, or resolved for a specific provider and model. */
+export async function loadAiConfig(providerOverride?: AiProvider | null, modelOverride?: string | null): Promise<AiConfig> {
+  const saved = await loadSettings();
+  if (!providerOverride || providerOverride === saved.provider) {
+    const config = resolveAiConfig(saved, env);
+    if (modelOverride && modelOverride.trim()) return { ...config, model: modelOverride.trim() };
+    return config;
+  }
+  const keySlot = `apiKeyEnc${providerOverride}` as keyof typeof saved;
+  const urlSlot = `baseUrl${providerOverride}` as keyof typeof saved;
+  const modelSlot = `model${providerOverride}` as keyof typeof saved;
+  const savedForProvider: SavedSettings = {
+    provider: providerOverride,
+    baseUrl: (saved[urlSlot] as string | null) ?? null,
+    model: (modelOverride && modelOverride.trim()) ? modelOverride.trim() : (saved[modelSlot] as string | null) ?? null,
+    apiKeyEnc: (saved[keySlot] as string | null) ?? null,
+    aiTimeoutSeconds: saved.aiTimeoutSeconds,
+  };
+  return resolveAiConfig(savedForProvider, env);
 }
 
 /**

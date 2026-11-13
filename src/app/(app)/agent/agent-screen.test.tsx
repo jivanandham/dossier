@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { toast } from "@/components/toast";
 import type { AgentCandidateView, AgentView } from "@/lib/agent/view";
 
-import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow } from "./actions";
+import { approveAgentDraft, dismissAgentCandidate, prepareAgentDraft, restoreAgentCandidate, runAgentNow, saveAgentSettings } from "./actions";
 import { AgentScreen } from "./agent-screen";
 
 const router = vi.hoisted(() => ({ refresh: vi.fn(), push: vi.fn() }));
@@ -18,6 +18,7 @@ vi.mock("./actions", () => ({
   approveAgentDraft: vi.fn(async () => ({ ok: true, data: { applicationId: "app-1" } })),
   dismissAgentCandidate: vi.fn(async () => ({ ok: true, data: { undo: null } })),
   restoreAgentCandidate: vi.fn(async () => ({ ok: true, data: null })),
+  saveAgentSettings: vi.fn(async () => ({ ok: true, data: null })),
 }));
 
 const card = (id: string, score: number, extra: Partial<AgentCandidateView> = {}): AgentCandidateView => ({
@@ -55,6 +56,12 @@ const view: AgentView = {
   lastRun: { at: "Tue 20 Oct, 07:00", message: "2 new postings are waiting for a look." },
   nextRun: "Wed 21 Oct, 07:00",
   runJobId: null,
+  agentAiProvider: null,
+  agentAiModel: null,
+  agentBatchProcessing: false,
+  agentBatchSize: 5,
+  defaultAiProvider: null,
+  defaultAiModel: null,
   drafts: [card("d1", 91, { applicationId: "app-1" })],
   scored: [card("s1", 84, { redFlags: ["German required"], error: "The draft couldn't be prepared. Try again." }), card("s2", 72)],
   belowMinimum: [card("b1", 40)],
@@ -209,5 +216,18 @@ describe("AgentScreen (E16-6)", () => {
     expect(screen.getByText("No drafts yet. After a run, the best new postings get a draft here.")).toBeInTheDocument();
     expect(screen.getByText("Nothing waiting yet. A run puts the postings that fit you best here.")).toBeInTheDocument();
     expect(screen.getByText("Last run").nextElementSibling).toHaveTextContent("Not yet");
+  });
+
+  it("renders scoring provider, model, and batch processing options and allows updating them", async () => {
+    const user = userEvent.setup();
+    open({ agentAiProvider: null, agentBatchProcessing: true, agentBatchSize: 5 });
+    expect(screen.getByRole("combobox", { name: "Scoring provider" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Batch processing" })).toHaveValue("5");
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Scoring provider" }), "GOOGLE");
+    expect(saveAgentSettings).toHaveBeenCalledWith({ aiProvider: "GOOGLE" });
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Batch processing" }), "off");
+    expect(saveAgentSettings).toHaveBeenCalledWith({ batchProcessing: false, batchSize: 5 });
   });
 });

@@ -208,6 +208,13 @@ export const settingsSchema = z.object({
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
+  /** Which AI provider and model the job agent uses for scoring; null means default AI provider. */
+  agentAiProvider: z.enum(AiProvider).nullable().catch(null),
+  agentAiModel: z.string().nullable().catch(null),
+  /** Whether the job agent runs scoring in concurrent batches rather than sequentially. */
+  agentBatchProcessing: flag(false),
+  /** How many postings to score concurrently in a batch (default 5). */
+  agentBatchSize: z.coerce.number().int().min(1).max(10).catch(5),
   /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
   agentAutoDraft: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */

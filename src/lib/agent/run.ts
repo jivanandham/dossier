@@ -211,32 +211,50 @@ export async function evaluateAgentPostings(postings: readonly FoundPosting[], c
   if (fresh.length === 0) return { ...counts, scored: 0, message: postings.length === 0 ? "The search found no postings this time." : "No new postings this time." };
 
   const toScore = fresh.slice(0, settings.agentMaxScores);
-  await context.step(`Scoring ${toScore.length} ${toScore.length === 1 ? "posting" : "postings"}`);
-  const [score, profile] = await Promise.all([loadPostingScorer(), loadProfile()]);
+  const batchSize = settings.agentBatchProcessing ? Math.max(1, settings.agentBatchSize || 5) : 1;
+  await context.step(
+    `Scoring ${toScore.length} ${toScore.length === 1 ? "posting" : "postings"}${batchSize > 1 ? ` in batches of ${batchSize}` : ""}`,
+  );
+  const [score, profile] = await Promise.all([
+    loadPostingScorer(settings.agentAiProvider, settings.agentAiModel),
+    loadProfile(),
+  ]);
   let scored = 0;
   let queued = 0;
   const kept: string[] = [];
   let problem: string | null = null;
-  for (const posting of toScore) {
+  for (let i = 0; i < toScore.length; i += batchSize) {
     if (context.signal.aborted) break;
-    try {
-      const { data, scoredWith } = await score(posting, profile, context.signal);
-      // A source/model may finish after cancellation (notably a data wipe).
-      // Respect cancellation before writing, but this is not an atomic fence
-      // against imports/wipes; that needs the broader background-job lifecycle.
-      if (context.signal.aborted) break;
-      const candidate = await prisma.agentCandidate.create({ data: candidateData(posting, data), select: { id: true } });
-      // Find jobs shows it too (#208).
-      await saveScore(posting, data, scoredWith);
-      kept.push(candidate.id);
-      scored += 1;
-      if (data.score >= settings.agentMinScore) queued += 1;
-    } catch (error) {
-      // Another run kept it first: it's seen either way.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") continue;
-      // One posting that fails doesn't stop the rest.
-      if (error instanceof AiError) problem = error.message;
-      else if (!context.signal.aborted) logServerError("job agent scoring", error);
+    const batch = toScore.slice(i, i + batchSize);
+    if (batchSize > 1 && toScore.length > batchSize) {
+      await context.step(`Scoring postings (${Math.min(i + batch.length, toScore.length)} of ${toScore.length})`);
+    }
+    const results = await Promise.allSettled(
+      batch.map(async (posting) => {
+        if (context.signal.aborted) return null;
+        const { data, scoredWith } = await score(posting, profile, context.signal);
+        if (context.signal.aborted) return null;
+        try {
+          const candidate = await prisma.agentCandidate.create({ data: candidateData(posting, data), select: { id: true } });
+          // Find jobs shows it too (#208).
+          await saveScore(posting, data, scoredWith);
+          return { id: candidate.id, score: data.score };
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") return null;
+          throw error;
+        }
+      }),
+    );
+    for (const res of results) {
+      if (res.status === "fulfilled" && res.value) {
+        kept.push(res.value.id);
+        scored += 1;
+        if (res.value.score >= settings.agentMinScore) queued += 1;
+      } else if (res.status === "rejected") {
+        const error = res.reason;
+        if (error instanceof AiError) problem = error.message;
+        else if (!context.signal.aborted) logServerError("job agent scoring", error);
+      }
     }
   }
 

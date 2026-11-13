@@ -13,6 +13,9 @@ import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
 import type { Country } from "@/lib/job-search/countries";
 import type { JobSource, SearchQuery } from "@/lib/job-search/search";
 import type { Scorer } from "@/lib/scoring/scorers";
+import type { AiProvider } from "@/generated/prisma/enums";
+import { PROVIDER_OPTIONS } from "@/lib/ai/provider-options";
+import { AiModelSelector } from "@/components/ai-model-selector";
 
 import { saveAgentSettings } from "../agent/actions";
 import { RecurringSearches } from "./recurring-searches";
@@ -26,6 +29,10 @@ export type AgentSettings = {
   maxScores: number;
   maxDrafts: number;
   autoDraft: boolean;
+  aiProvider?: AiProvider | null;
+  aiModel?: string | null;
+  batchProcessing?: boolean;
+  batchSize?: number;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -152,6 +159,55 @@ export function AgentSection({
             </option>
           ))}
         </Select>
+        <Select
+          label="Scoring AI provider"
+          hint="Provider used to score new postings."
+          value={settings.aiProvider ?? ""}
+          onChange={(event) => {
+            const val = event.target.value;
+            change({ aiProvider: val ? (val as AiProvider) : null });
+          }}
+        >
+          <option value="">Default AI Provider</option>
+          {PROVIDER_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.name}
+            </option>
+          ))}
+        </Select>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-field font-medium">Scoring AI model</label>
+          <span className="text-meta text-muted">Specific model used for scoring.</span>
+          <AiModelSelector
+            provider={settings.aiProvider}
+            defaultModel={settings.aiModel}
+            value={settings.aiModel ?? null}
+            onChange={(aiModel) => change({ aiModel })}
+          />
+        </div>
+        <Toggle
+          className="sm:col-span-2"
+          label="Batch processing"
+          description={
+            settings.batchProcessing
+              ? `On. Scores postings in concurrent batches of ${settings.batchSize ?? 5}, reducing run time.`
+              : "Off. Scores postings sequentially one by one."
+          }
+          checked={Boolean(settings.batchProcessing)}
+          onCheckedChange={(batchProcessing) => change({ batchProcessing })}
+        />
+        {settings.batchProcessing && (
+          <Select
+            label="Batch concurrency"
+            hint="How many postings to score simultaneously in each batch."
+            value={String(settings.batchSize ?? 5)}
+            onChange={(event) => change({ batchSize: Number(event.target.value) })}
+          >
+            <option value="3">3 concurrent postings</option>
+            <option value="5">5 concurrent postings (Recommended)</option>
+            <option value="10">10 concurrent postings</option>
+          </Select>
+        )}
         <Toggle
           className="sm:col-span-2"
           label="Prepare drafts on its own"

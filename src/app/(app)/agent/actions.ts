@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { AgentCandidateStatus } from "@/generated/prisma/enums";
+import { AgentCandidateStatus, AiProvider } from "@/generated/prisma/enums";
 import { agentDraftJob, approveCandidate, dismissCandidate, draftJobKey, restoreCandidate } from "@/lib/agent/draft";
 import { AGENT_JOB_KEY, agentScanJob } from "@/lib/agent/jobs";
 import { agentSetupProblem } from "@/lib/agent/run";
@@ -31,6 +31,10 @@ export const saveAgentSettings = action(
     maxScores: z.number().int().min(1).max(30).optional(),
     maxDrafts: z.number().int().min(0).max(10).optional(),
     autoDraft: z.boolean().optional(),
+    aiProvider: z.enum(AiProvider).nullable().optional(),
+    aiModel: z.string().nullable().optional(),
+    batchProcessing: z.boolean().optional(),
+    batchSize: z.number().int().min(1).max(10).optional(),
   }).strict(),
   async (changes) => {
     if (changes.enabled) {
@@ -44,6 +48,10 @@ export const saveAgentSettings = action(
       agentMaxScores: changes.maxScores,
       agentMaxDrafts: changes.maxDrafts,
       agentAutoDraft: changes.autoDraft,
+      ...(changes.aiProvider !== undefined ? { agentAiProvider: changes.aiProvider } : {}),
+      ...(changes.aiModel !== undefined ? { agentAiModel: changes.aiModel } : {}),
+      ...(changes.batchProcessing !== undefined ? { agentBatchProcessing: changes.batchProcessing } : {}),
+      ...(changes.batchSize !== undefined ? { agentBatchSize: changes.batchSize } : {}),
     });
     revalidatePath("/agent");
     revalidatePath("/settings");

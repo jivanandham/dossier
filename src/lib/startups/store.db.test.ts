@@ -121,15 +121,18 @@ describe("keeping startups (#222)", () => {
         startup({ externalId: "2", company: "Remote Co", website: "", location: "REMOTE (EU)", details: "Remote Co | Engineer | REMOTE (EU)", postedAt: "2026-10-22T12:00:00Z" }),
         startup({ source: "YC", externalId: "3", company: "Faraway", website: "", location: "Austin, TX", summary: "Faraway (YC W24) Is Hiring in Austin, TX", details: "", roles: [], postedAt: null }),
         startup({ externalId: "4", company: "Munich Co", website: "", location: "Munich, Germany", details: "Munich Co | Engineer | Munich, Germany", emails: [address("jobs@munich.co")], postedAt: "2026-10-19T12:00:00Z" }),
+        startup({ externalId: "5", company: "Paris Co", website: "", location: "Paris, France", details: "Paris Co | Engineer | Paris, France", postedAt: "2026-10-18T12:00:00Z" }),
       ],
       now,
     );
     const names = async (change: object) => (await listStartups(filter(change), berlin)).startups.map((entry) => entry.company);
-    expect(await names({})).toEqual(["Acme", "Munich Co", "Remote Co", "Faraway"]);
-    expect(await names({ sort: "newest" })).toEqual(["Remote Co", "Acme", "Munich Co", "Faraway"]);
+    expect(await names({})).toEqual(["Acme", "Munich Co", "Remote Co", "Paris Co", "Faraway"]);
+    expect(await names({ sort: "newest" })).toEqual(["Remote Co", "Acme", "Munich Co", "Paris Co", "Faraway"]);
     expect(await names({ place: "city" })).toEqual(["Acme"]);
     expect(await names({ place: "country" })).toEqual(["Acme", "Munich Co"]);
     expect(await names({ place: "remote" })).toEqual(["Remote Co"]);
+    expect(await names({ place: "france" })).toEqual(["Paris Co"]);
+    expect(await names({ place: "europe_remote" })).toEqual(["Remote Co"]);
     expect(await names({ source: "YC" })).toEqual(["Faraway"]);
     expect(await names({ withEmail: true })).toEqual(["Munich Co"]);
     expect(await names({ q: "remote co" })).toEqual(["Remote Co"]);
@@ -138,7 +141,7 @@ describe("keeping startups (#222)", () => {
     const [faraway] = (await listStartups(filter({ source: "YC" }), berlin)).startups;
     await updateStartup(faraway.id, { status: "DISMISSED", notes: "Too far" });
     const list = await listStartups(filter({ status: "DISMISSED" }), berlin, { limit: 1 });
-    expect(list).toMatchObject({ total: 1, counts: { NEW: 3, SAVED: 0, CONTACTED: 0, DISMISSED: 1 } });
+    expect(list).toMatchObject({ total: 1, counts: { NEW: 4, SAVED: 0, CONTACTED: 0, DISMISSED: 1 } });
     expect(list.startups[0].notes).toBe("Too far");
     expect(await updateStartup("missing", { status: "SAVED" })).toBeNull();
   });

@@ -81,8 +81,8 @@ export type StartupView = FoundStartup & {
   applicationId: string | null;
 };
 
-/** Where to look: anywhere, the profile's city, its country, or remote work open to it. */
-export const STARTUP_PLACES = ["any", "city", "country", "remote"] as const;
+/** Where to look: anywhere, the profile's city, its country, remote work open to it, France, or Europe (remote only). */
+export const STARTUP_PLACES = ["any", "city", "country", "remote", "france", "europe_remote"] as const;
 export type StartupPlace = (typeof STARTUP_PLACES)[number];
 
 export const STARTUP_SORTS = ["match", "newest"] as const;

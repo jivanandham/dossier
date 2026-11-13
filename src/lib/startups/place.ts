@@ -220,3 +220,36 @@ export function reach(text: string, place: Place): Reach {
   }
   return { here, remote: true, remoteOpen, remoteOnly };
 }
+
+/** Checks whether a post offers remote work open to Europe/EU/worldwide. */
+export function isEuropeRemote(text: string): boolean {
+  if (!REMOTE.test(text) && !ANYWHERE.test(text)) return false;
+  const parts = text.split(/[|;\n•·]+/).filter((part) => REMOTE.test(part) || ANYWHERE.test(part));
+  const target = parts.length > 0 ? parts : [text];
+  for (const part of target) {
+    const { codes, regions, anywhere } = placesIn(part);
+    if (anywhere) return true;
+    const hasEurope = regions.some(
+      (r) =>
+        r.includes("Europe") ||
+        r.includes("EU") ||
+        r.includes("EMEA") ||
+        r.includes("DACH") ||
+        r.includes("Nordic") ||
+        r.includes("UK"),
+    );
+    if (hasEurope) return true;
+    const hasEuroCountry = [...codes].some((c) => EUROPE.includes(c));
+    if (hasEuroCountry) return true;
+  }
+  return false;
+}
+
+/** Checks whether a post or startup indicates a location in France (Paris, etc. or France). */
+export function isFrance(text: string): boolean {
+  const francePlace = placeOf({ city: "", country: "France" });
+  const reachResult = reach(text, francePlace);
+  if (reachResult.here !== null) return true;
+  const frenchCities = /\b(paris|lyon|marseille|bordeaux|toulouse|nantes|lille|strasbourg|montpellier|rennes|grenoble|nice)\b/i;
+  return frenchCities.test(text);
+}

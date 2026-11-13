@@ -204,7 +204,9 @@ function Filters({ filter, city, country, onChange }: { filter: StartupFilter; c
       <Select label="Where" value={filter.place} onChange={(event) => onChange({ place: event.target.value as StartupFilter["place"] })}>
         <option value="any">Anywhere</option>
         {city && <option value="city">{city}</option>}
-        {country && <option value="country">{country}</option>}
+        {country && country.toLowerCase() !== "france" && <option value="country">{country}</option>}
+        <option value="france">France</option>
+        <option value="europe_remote">Europe (remote only)</option>
         <option value="remote">Remote{country ? `, open to ${country}` : ""}</option>
       </Select>
       <Select label="Source" value={filter.source} onChange={(event) => onChange({ source: event.target.value as StartupFilter["source"] })}>

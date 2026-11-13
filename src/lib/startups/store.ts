@@ -10,7 +10,7 @@ import { loadProfile } from "@/lib/profile-data";
 
 import { lookUpSite, rankEmails } from "./emails";
 import { matchStartup, MATCH_VERSION, whereText } from "./match";
-import { placeOf, reach, type Place } from "./place";
+import { isEuropeRemote, isFrance, placeOf, reach, type Place } from "./place";
 import { domainOf, withoutAddresses } from "./text";
 import { startupEmailSchema, startupLinkSchema, STARTUP_SOURCES, type FoundStartup, type StartupEmail, type StartupFilter, type StartupSource, type StartupView } from "./types";
 
@@ -184,6 +184,8 @@ export type StartupList = { startups: StartupView[]; total: number; counts: Reco
 /** Whether a startup hires where the filter asks. */
 function inPlace(startup: StartupView, filter: StartupFilter["place"], place: Place): boolean {
   if (filter === "any") return true;
+  if (filter === "france") return isFrance(whereText(startup));
+  if (filter === "europe_remote") return isEuropeRemote(whereText(startup));
   const where = reach(whereText(startup), place);
   if (filter === "remote") return where.remote && where.remoteOpen !== false;
   if (filter === "city") return where.here === "city";

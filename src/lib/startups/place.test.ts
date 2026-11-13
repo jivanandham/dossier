@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { placeOf, reach } from "./place";
+import { isEuropeRemote, isFrance, placeOf, reach } from "./place";
 
 const berlin = placeOf({ city: "Berlin", country: "Deutschland" });
 const bangalore = placeOf({ city: "Bangalore", country: "India" });
@@ -45,5 +45,20 @@ describe("where a startup hires, for users anywhere (#222)", () => {
   it("can't judge remote work's limits without a country", () => {
     expect(reach("Acme | Remote (US only)", nowhere)).toEqual({ here: null, remote: true, remoteOpen: null, remoteOnly: "" });
     expect(reach("Acme | Anywhere in the world", nowhere)).toMatchObject({ remote: true, remoteOpen: true });
+  });
+
+  it("identifies startups in France or French cities", () => {
+    expect(isFrance("Acme | Senior Engineer | Paris, France | Full-time")).toBe(true);
+    expect(isFrance("Doctolib | Software Engineer | Lyon")).toBe(true);
+    expect(isFrance("Acme | Engineer | Berlin, Germany")).toBe(false);
+  });
+
+  it("identifies remote startups open to Europe", () => {
+    expect(isEuropeRemote("Acme | Remote (EU) | Full-time")).toBe(true);
+    expect(isEuropeRemote("Acme | REMOTE (Europe)")).toBe(true);
+    expect(isEuropeRemote("Acme | Remote, European time zones")).toBe(true);
+    expect(isEuropeRemote("Acme | Remote, worldwide")).toBe(true);
+    expect(isEuropeRemote("Acme | Remote (US only)")).toBe(false);
+    expect(isEuropeRemote("Acme | Engineer | Berlin, Onsite")).toBe(false);
   });
 });

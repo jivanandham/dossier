@@ -11,8 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
-import type { AiProvider, Tone } from "@/generated/prisma/enums";
-import { providerOption } from "@/lib/ai/provider-options";
+import type { Tone } from "@/generated/prisma/enums";
 import { useJob } from "@/hooks/use-job";
 import type { DocumentsToWrite } from "@/lib/settings";
 import { withSkillAdded, type Extracted } from "@/lib/application-data";
@@ -60,7 +59,6 @@ export type Draft = {
   details: Details;
   tone: Tone;
   note: string;
-  provider?: AiProvider | null;
   /** Which documents to write (#367); missing in drafts from before, which wrote both. */
   write?: DocumentsToWrite;
   writeJobId: string | null;
@@ -152,8 +150,6 @@ export type NewApplicationProps = {
   defaultTone: Tone;
   /** Settings → Documents to write (#367). */
   defaultWrite?: DocumentsToWrite;
-  /** Settings → Default AI provider for tailoring. */
-  defaultProvider?: AiProvider | null;
   /** "+ New application": start over, whatever the tab kept. */
   fresh?: boolean;
   /** "Start application" on Find jobs: start over from this posting. */
@@ -167,7 +163,6 @@ export function NewApplication({
   samplePosting,
   defaultTone,
   defaultWrite = "both",
-  defaultProvider = null,
   fresh = false,
   fromPosting = null,
 }: NewApplicationProps) {
@@ -181,7 +176,6 @@ export function NewApplication({
     details: EMPTY_DETAILS,
     tone: defaultTone,
     note: "",
-    provider: defaultProvider,
     write: defaultWrite,
     writeJobId: null,
     postingId: null,
@@ -350,15 +344,7 @@ export function NewApplication({
     if (!draft.read || !draft.readJobId || starting) return;
     setStarting(true);
     const result = toastResult(
-      await startWritingDocuments({
-        readJobId: draft.readJobId,
-        details: draft.details,
-        match: draft.read.match,
-        tone: draft.tone,
-        note: draft.note,
-        write: draft.write ?? "both",
-        provider: draft.provider,
-      }),
+      await startWritingDocuments({ readJobId: draft.readJobId, details: draft.details, match: draft.read.match, tone: draft.tone, note: draft.note, write: draft.write ?? "both" }),
     );
     setStarting(false);
     if (!result.ok) return;
@@ -495,12 +481,9 @@ export function NewApplication({
                 write={draft.write ?? "both"}
                 tone={draft.tone}
                 note={draft.note}
-                provider={draft.provider ?? null}
                 onWrite={(write) => update({ write })}
                 onTone={(tone) => update({ tone })}
                 onNote={(note) => update({ note })}
-                onProvider={(provider) => update({ provider })}
-                defaultProviderName={defaultProvider ? providerOption(defaultProvider).name : undefined}
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button variant="text" onClick={() => update({ step: "paste" })}>

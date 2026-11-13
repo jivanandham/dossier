@@ -8,7 +8,6 @@ import { scorePosting } from "@/lib/ai/tasks";
 import type { PostingFit } from "@/lib/fit";
 import { postingText, type FoundPosting } from "@/lib/job-search/search";
 import type { ProfileData } from "@/lib/profile";
-import { loadSettings } from "@/lib/settings-data";
 import { recordUsage } from "@/lib/usage-data";
 
 import { jevKey, loadScoringConfig, type ScoringConfig } from "./config";
@@ -45,11 +44,7 @@ export async function loadPostingScorer(): Promise<PostingScorer> {
     return (posting, profile, signal) => scoreWithJev(posting, profile, { key, signal, onUsage: recordUsage });
   }
   if (!(await isAiConfigured())) throw AiError.config(AI_PROVIDER_MISSING);
-  const settings = await loadSettings();
-  const [provider, options] = await Promise.all([
-    getAiProvider(settings.agentAiProvider, settings.agentAiModel),
-    loadTaskOptions(),
-  ]);
+  const [provider, options] = await Promise.all([getAiProvider(), loadTaskOptions()]);
   return async (posting, profile, signal) => {
     const { title, company, place, remote, salary } = posting;
     const { data, promptVersion } = await scorePosting(provider, { posting: postingText(posting), title, company, place, remote, salary, profile }, { ...options, signal });

@@ -348,7 +348,6 @@ describe("creating the application (E7-6)", () => {
       tone: "WARM",
       note: "Lean on research.",
       write: "both",
-      provider: null,
     });
     expect(screen.getByRole("heading", { name: "Putting your application together…" })).toBeInTheDocument();
     expect(screen.getByText("Tailored documents").closest("li")).toHaveAttribute("aria-current", "step");

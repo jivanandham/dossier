@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AgentCandidateStatus, AiProvider, JobStatus } from "@/generated/prisma/enums";
+import { AgentCandidateStatus, JobStatus } from "@/generated/prisma/enums";
 import { formatDateTime } from "@/lib/dates";
 import { postedAgo, type JobSource } from "@/lib/job-search/search";
 import { SOURCE_INFO } from "@/lib/job-search/sources";
@@ -56,10 +56,6 @@ export type AgentView = {
   minScore: number;
   maxScores: number;
   maxDrafts: number;
-  agentAiProvider: AiProvider | null;
-  agentAiModel: string | null;
-  defaultAiProvider: AiProvider | null;
-  defaultAiModel: string | null;
   /** Why it can't run: no search, scorer, source or key; null when it's set up. */
   setupProblem: string | null;
   /** Which settings section fixes it. */
@@ -167,10 +163,6 @@ export async function loadAgentView(now = new Date()): Promise<AgentView> {
     minScore: settings.agentMinScore,
     maxScores: settings.agentMaxScores,
     maxDrafts: settings.agentMaxDrafts,
-    agentAiProvider: settings.agentAiProvider,
-    agentAiModel: settings.agentAiModel,
-    defaultAiProvider: settings.provider,
-    defaultAiModel: settings.model,
     setupProblem,
     setupSection: setupProblem ? sectionOf(setupProblem) : null,
     limitReached: eligible > now,

@@ -208,12 +208,6 @@ export const settingsSchema = z.object({
   /** The most postings a run scores, and the most drafts it prepares on its own. */
   agentMaxScores: z.coerce.number().int().min(1).max(30).catch(15),
   agentMaxDrafts: z.coerce.number().int().min(0).max(10).catch(3),
-  /** Which AI model the job agent uses for scoring; null means default AI provider. */
-  agentAiProvider: z.enum(AiProvider).nullable().catch(null),
-  agentAiModel: z.string().nullable().catch(null),
-  /** Default AI model for new application tailoring; null means default AI provider. */
-  applicationAiProvider: z.enum(AiProvider).nullable().catch(null),
-  applicationAiModel: z.string().nullable().catch(null),
   /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
   agentAutoDraft: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */

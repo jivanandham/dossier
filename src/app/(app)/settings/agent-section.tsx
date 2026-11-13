@@ -13,8 +13,6 @@ import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
 import type { Country } from "@/lib/job-search/countries";
 import type { JobSource, SearchQuery } from "@/lib/job-search/search";
 import type { Scorer } from "@/lib/scoring/scorers";
-import type { AiProvider } from "@/generated/prisma/enums";
-import { PROVIDER_OPTIONS } from "@/lib/ai/provider-options";
 
 import { saveAgentSettings } from "../agent/actions";
 import { RecurringSearches } from "./recurring-searches";
@@ -28,8 +26,6 @@ export type AgentSettings = {
   maxScores: number;
   maxDrafts: number;
   autoDraft: boolean;
-  aiProvider?: AiProvider | null;
-  aiModel?: string | null;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -153,23 +149,6 @@ export function AgentSection({
           {DRAFT_COUNTS.map((count) => (
             <option key={count} value={count}>
               {count}
-            </option>
-          ))}
-        </Select>
-        <Select
-          className="sm:col-span-2"
-          label="AI scoring model"
-          hint="Provider used to score postings against your profile."
-          value={settings.aiProvider ?? ""}
-          onChange={(event) => {
-            const val = event.target.value;
-            change({ aiProvider: val ? (val as AiProvider) : null });
-          }}
-        >
-          <option value="">Default AI Provider</option>
-          {PROVIDER_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.name} {opt.defaultModel ? `(${opt.defaultModel})` : ""}
             </option>
           ))}
         </Select>

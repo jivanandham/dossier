@@ -164,4 +164,23 @@ describe("Settings → Job agent", () => {
     await waitFor(() => expect(screen.getByRole("switch", { name: "Run the job agent" })).toHaveAttribute("aria-checked", "false"));
     expect(toast).toHaveBeenCalledWith("Enable a search first.");
   });
+
+  it("saves pre-scoring filters", async () => {
+    const user = userEvent.setup();
+    open({
+      initial: {
+        ...initial,
+        excludeKeywords: "unpaid, clearance",
+        excludeCompanies: "Revature",
+        minSalary: 80000,
+        requireSalary: false,
+      },
+    });
+    expect(screen.getByLabelText("Exclude keywords")).toHaveValue("unpaid, clearance");
+    expect(screen.getByLabelText("Exclude companies")).toHaveValue("Revature");
+    expect(screen.getByLabelText("Minimum annual salary")).toHaveValue(80000);
+
+    await user.click(screen.getByRole("switch", { name: "Require disclosed compensation" }));
+    expect(saveAgentSettings).toHaveBeenCalledWith({ requireSalary: true });
+  });
 });

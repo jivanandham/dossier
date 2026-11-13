@@ -230,4 +230,26 @@ describe("AgentScreen (E16-6)", () => {
     await user.selectOptions(screen.getByRole("combobox", { name: "Batch processing" }), "off");
     expect(saveAgentSettings).toHaveBeenCalledWith({ batchProcessing: false, batchSize: 5 });
   });
+
+  it("filters candidate postings by title/company, score, and reset", async () => {
+    const user = userEvent.setup();
+    open();
+    expect(screen.getByText("Posting s1")).toBeInTheDocument();
+    expect(screen.getByText("Posting s2")).toBeInTheDocument();
+
+    const searchInput = screen.getByRole("searchbox", { name: "Filter candidates by title or company" });
+    await user.type(searchInput, "s1");
+    expect(screen.getByText("Posting s1")).toBeInTheDocument();
+    expect(screen.queryByText("Posting s2")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Reset filters" }));
+    expect(screen.getByText("Posting s1")).toBeInTheDocument();
+    expect(screen.getByText("Posting s2")).toBeInTheDocument();
+
+    const scoreSelect = screen.getByRole("combobox", { name: "Filter by minimum score" });
+    await user.selectOptions(scoreSelect, "85");
+    expect(screen.getByText("Posting d1")).toBeInTheDocument(); // 91
+    expect(screen.queryByText("Posting s1")).not.toBeInTheDocument(); // 84
+    expect(screen.queryByText("Posting s2")).not.toBeInTheDocument(); // 72
+  });
 });

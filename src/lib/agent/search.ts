@@ -41,5 +41,8 @@ export function legacyAgentQuery(value: string): SearchQuery | null {
     radiusKm: searchQuerySchema.shape.radiusKm.catch(EMPTY_QUERY.radiusKm).parse(q.radiusKm),
     remoteOnly: searchQuerySchema.shape.remoteOnly.catch(EMPTY_QUERY.remoteOnly).parse(q.remoteOnly),
     postedWithin: searchQuerySchema.shape.postedWithin.catch(EMPTY_QUERY.postedWithin).parse(q.postedWithin),
+    experience: searchQuerySchema.shape.experience.catch(undefined).parse(q.experience),
+    employmentType: searchQuerySchema.shape.employmentType.catch(undefined).parse(q.employmentType),
+    excludeKeywords: typeof q.excludeKeywords === "string" ? q.excludeKeywords.slice(0, 300) : undefined,
   };
 }

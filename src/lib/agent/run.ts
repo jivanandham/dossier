@@ -10,6 +10,7 @@ import { searchPostings } from "@/lib/job-search";
 import { credentialsFor, loadJobSearchConfig, requestContext, type JobSearchConfig } from "@/lib/job-search/config";
 import { JobSearchError } from "@/lib/job-search/errors";
 import { postingKey, type FoundPosting } from "@/lib/job-search/search";
+import { fitsSalary, matchesExclusion } from "@/lib/job-search/posting-filters";
 import { startJob, type JobContext } from "@/lib/jobs/runner";
 import { logServerError } from "@/lib/log";
 import { saveScore } from "@/lib/posting-scores";
@@ -207,10 +208,25 @@ export function roundRobinPostings(pages: readonly (readonly FoundPosting[])[]):
 /** Evaluate one ordered collection with shared score/draft caps. No source calls. */
 export async function evaluateAgentPostings(postings: readonly FoundPosting[], context: JobContext, settings: SettingsData): Promise<AgentScanResult> {
   const fresh = await newPostings(postings);
-  const counts = { found: postings.length, fresh: fresh.length, skipped: postings.length - fresh.length, drafted: 0 };
-  if (fresh.length === 0) return { ...counts, scored: 0, message: postings.length === 0 ? "The search found no postings this time." : "No new postings this time." };
+  const eligible = fresh.filter((posting) => {
+    if (matchesExclusion(posting, {
+      excludeKeywords: settings.agentExcludeKeywords,
+      excludeCompanies: settings.agentExcludeCompanies,
+    })) {
+      return false;
+    }
+    if (!fitsSalary(posting, {
+      minSalary: settings.agentMinSalary,
+      requireSalary: settings.agentRequireSalary,
+    })) {
+      return false;
+    }
+    return true;
+  });
+  const counts = { found: postings.length, fresh: eligible.length, skipped: postings.length - eligible.length, drafted: 0 };
+  if (eligible.length === 0) return { ...counts, scored: 0, message: postings.length === 0 ? "The search found no postings this time." : "No new postings this time." };
 
-  const toScore = fresh.slice(0, settings.agentMaxScores);
+  const toScore = eligible.slice(0, settings.agentMaxScores);
   const batchSize = settings.agentBatchProcessing ? Math.max(1, settings.agentBatchSize || 5) : 1;
   await context.step(
     `Scoring ${toScore.length} ${toScore.length === 1 ? "posting" : "postings"}${batchSize > 1 ? ` in batches of ${batchSize}` : ""}`,

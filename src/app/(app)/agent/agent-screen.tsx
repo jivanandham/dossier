@@ -46,6 +46,32 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const [agentAiModel, setAgentAiModel] = useState<string | null>(view.agentAiModel);
   const [batchProcessing, setBatchProcessing] = useState(view.agentBatchProcessing);
   const [batchSize, setBatchSize] = useState(view.agentBatchSize);
+  const [filterKeyword, setFilterKeyword] = useState("");
+  const [filterMinScore, setFilterMinScore] = useState<number>(0);
+  const [filterSearch, setFilterSearch] = useState<string>("all");
+  const [filterRemote, setFilterRemote] = useState<"all" | "remote" | "onsite">("all");
+
+  const matchesFilter = (c: AgentCandidateView) => {
+    if (filterKeyword.trim()) {
+      const q = filterKeyword.trim().toLowerCase();
+      const match = c.title.toLowerCase().includes(q) || (c.company && c.company.toLowerCase().includes(q));
+      if (!match) return false;
+    }
+    if (filterMinScore > 0 && (c.score ?? 0) < filterMinScore) {
+      return false;
+    }
+    if (filterSearch !== "all") {
+      const hasSearch = c.searches.some((s) => s.searchName === filterSearch || s.searchId === filterSearch);
+      if (!hasSearch) return false;
+    }
+    if (filterRemote === "remote" && !c.facts?.toLowerCase().includes("remote")) {
+      return false;
+    }
+    if (filterRemote === "onsite" && c.facts?.toLowerCase().includes("remote")) {
+      return false;
+    }
+    return true;
+  };
 
   const run = useJob<ScanResult>(runJobId, 0, (job) => {
     if (job.status !== "DONE" && job.status !== "FAILED") return;
@@ -96,6 +122,10 @@ export function AgentScreen({ view }: { view: AgentView }) {
   const drafts = view.drafts.filter((candidate) => !hidden.has(candidate.id));
   const scored = view.scored.filter((candidate) => !hidden.has(candidate.id));
   const below = view.belowMinimum.filter((candidate) => !hidden.has(candidate.id));
+  const hasFilter = Boolean(filterKeyword || filterMinScore > 0 || filterSearch !== "all" || filterRemote !== "all");
+  const filteredDrafts = drafts.filter(matchesFilter);
+  const filteredScored = scored.filter(matchesFilter);
+  const filteredBelow = below.filter(matchesFilter);
   const empty = drafts.length === 0 && scored.length === 0;
 
   return (
@@ -230,16 +260,84 @@ export function AgentScreen({ view }: { view: AgentView }) {
           <p className="text-meta text-muted">One first-page source request per enabled search, sequentially. The shared limit is {AGENT_MAX_SOURCE_REQUESTS_PER_DAY} requests in a rolling 24 hours, including failed attempts. All-run waits until the whole batch fits; manual runs also wait at least an hour after the previous run. Each run shares a limit of {view.maxScores} AI scores{view.autoDraft ? ` and ${view.maxDrafts} automatic drafts` : "; automatic drafts are off"} across all searches.</p>
         </Card>
 
-        <Section title="Drafts to review" count={drafts.length}>
+        {(drafts.length > 0 || scored.length > 0 || below.length > 0) && (
+          <Card padding="none" className="flex flex-wrap items-center gap-3 px-5 py-3">
+            <div className="min-w-[180px] flex-1">
+              <input
+                type="search"
+                aria-label="Filter candidates by title or company"
+                placeholder="Filter by title or company…"
+                className="w-full rounded-card border border-line bg-card px-3 py-1.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none"
+                value={filterKeyword}
+                onChange={(e) => setFilterKeyword(e.target.value)}
+              />
+            </div>
+            <select
+              aria-label="Filter by minimum score"
+              className="rounded-card border border-line bg-card px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+              value={String(filterMinScore)}
+              onChange={(e) => setFilterMinScore(Number(e.target.value))}
+            >
+              <option value="0">All scores</option>
+              <option value="75">75+ score</option>
+              <option value="80">80+ score</option>
+              <option value="85">85+ score</option>
+              <option value="90">90+ score</option>
+            </select>
+            {view.searches.length > 1 && (
+              <select
+                aria-label="Filter by search"
+                className="rounded-card border border-line bg-card px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+              >
+                <option value="all">All searches</option>
+                {view.searches.map((s) => (
+                  <option key={s.id} value={s.name}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            <select
+              aria-label="Filter by remote"
+              className="rounded-card border border-line bg-card px-3 py-1.5 text-sm text-ink focus:border-accent focus:outline-none"
+              value={filterRemote}
+              onChange={(e) => setFilterRemote(e.target.value as "all" | "remote" | "onsite")}
+            >
+              <option value="all">All modes</option>
+              <option value="remote">Remote only</option>
+              <option value="onsite">On-site / Hybrid</option>
+            </select>
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterKeyword("");
+                  setFilterMinScore(0);
+                  setFilterSearch("all");
+                  setFilterRemote("all");
+                }}
+                className="ml-auto text-xs text-muted underline underline-offset-2 hover:text-ink"
+              >
+                Reset filters
+              </button>
+            )}
+          </Card>
+        )}
+
+        <Section title="Drafts to review" count={hasFilter ? filteredDrafts.length : drafts.length}>
           {drafts.length === 0 ? (
             <Empty>
               {view.autoDraft
                 ? "No drafts yet. After a run, the best new postings get a draft here."
                 : "No drafts yet. Prepare one from a scored posting, or let the agent prepare them in Settings → Job agent."}
             </Empty>
+          ) : filteredDrafts.length === 0 ? (
+            <Empty>No drafts match the filter.</Empty>
           ) : (
             <ul className="flex flex-col gap-3">
-              {drafts.map((candidate) => (
+              {filteredDrafts.map((candidate) => (
                 <li key={candidate.id}>
                   <CandidateCard candidate={candidate}>
                     <Link href={`/applications/${candidate.applicationId}`} className={buttonClassName("primary", "sm", "hover:text-on-primary")}>
@@ -267,12 +365,14 @@ export function AgentScreen({ view }: { view: AgentView }) {
           )}
         </Section>
 
-        <Section title="Scored postings" count={scored.length}>
+        <Section title="Scored postings" count={hasFilter ? filteredScored.length : scored.length}>
           {scored.length === 0 ? (
             <Empty>{empty ? "Nothing waiting yet. A run puts the postings that fit you best here." : "No postings waiting for a draft."}</Empty>
+          ) : filteredScored.length === 0 ? (
+            <Empty>No scored postings match the filter.</Empty>
           ) : (
             <ul className="flex flex-col gap-3">
-              {scored.map((candidate) => (
+              {filteredScored.map((candidate) => (
                 <li key={candidate.id}>
                   <ScoredCard candidate={candidate} onDismiss={() => dismiss(candidate)} />
                 </li>
@@ -282,11 +382,11 @@ export function AgentScreen({ view }: { view: AgentView }) {
           {below.length > 0 && (
             <div className="flex flex-col gap-3">
               <button type="button" aria-expanded={showBelow} onClick={() => setShowBelow(!showBelow)} className="w-fit text-meta text-muted underline underline-offset-2 hover:text-ink">
-                {below.length} below your minimum score of {view.minScore} · {showBelow ? "Hide" : "Show"}
+                {hasFilter ? `${filteredBelow.length} of ${below.length}` : below.length} below your minimum score of {view.minScore} · {showBelow ? "Hide" : "Show"}
               </button>
               {showBelow && (
                 <ul className="flex flex-col gap-3">
-                  {below.map((candidate) => (
+                  {filteredBelow.map((candidate) => (
                     <li key={candidate.id}>
                       <ScoredCard candidate={candidate} onDismiss={() => dismiss(candidate)} />
                     </li>

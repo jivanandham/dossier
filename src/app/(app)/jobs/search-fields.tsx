@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { Country } from "@/lib/job-search/countries";
-import { EXPERIENCE_LEVELS, POSTED_WITHIN, RADII_KM, type JobSource, type RadiusKm, type SearchQuery } from "@/lib/job-search/search";
+import { EMPLOYMENT_TYPES, EXPERIENCE_LEVELS, POSTED_WITHIN, RADII_KM, type JobSource, type RadiusKm, type SearchQuery } from "@/lib/job-search/search";
 import { SOURCE_INFO, sourceCovers } from "@/lib/job-search/sources";
 
 // A search's fields, as Find jobs asks them (E14-6) and Settings → Job agent
@@ -90,6 +90,24 @@ export function SearchFields({
           </option>
         ))}
       </Select>
+      <Select
+        label="Employment type"
+        value={value.employmentType ?? "any"}
+        onChange={(event) => onChange({ employmentType: event.target.value as SearchQuery["employmentType"] })}
+      >
+        {EMPLOYMENT_TYPES.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+      <Input
+        label="Exclude keywords"
+        placeholder="e.g. clearance, unpaid"
+        value={value.excludeKeywords ?? ""}
+        onChange={(event) => onChange({ excludeKeywords: event.target.value || undefined })}
+        onBlur={onBlur}
+      />
     </>
   );
 }

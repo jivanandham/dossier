@@ -217,6 +217,14 @@ export const settingsSchema = z.object({
   agentBatchSize: z.coerce.number().int().min(1).max(10).catch(5),
   /** Whether a run prepares drafts for its best postings, or only scores them (off by default, #197). */
   agentAutoDraft: flag(false),
+  /** Excluded keywords (comma-separated): postings whose title or description matches are skipped before scoring. */
+  agentExcludeKeywords: z.string().catch(""),
+  /** Excluded companies (comma-separated): postings from these companies are skipped before scoring. */
+  agentExcludeCompanies: z.string().catch(""),
+  /** Minimum annual salary required; postings with disclosed pay below this are skipped. */
+  agentMinSalary: z.coerce.number().int().min(0).nullable().catch(null),
+  /** When true, postings that do not disclose compensation are skipped. */
+  agentRequireSalary: flag(false),
   /** The latest runs, newest first. They belong to the install: exports leave them out (INSTALL_SETTINGS). */
   agentRuns: json(z.array(agentRunSchema)).catch([]),
   // Startups (#222): when the screen was last opened, since the daily refresh

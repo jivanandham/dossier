@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useTrackSave } from "@/components/save-tracker";
 import { toastResult } from "@/components/toast";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Toggle } from "@/components/ui/toggle";
 import type { SavedAgentSearch } from "@/lib/agent/search";
@@ -33,6 +34,10 @@ export type AgentSettings = {
   aiModel?: string | null;
   batchProcessing?: boolean;
   batchSize?: number;
+  excludeKeywords?: string;
+  excludeCompanies?: string;
+  minSalary?: number | null;
+  requireSalary?: boolean;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
@@ -219,6 +224,55 @@ export function AgentSection({
           checked={settings.autoDraft}
           onCheckedChange={(autoDraft) => change({ autoDraft })}
         />
+      </Card>
+
+      <Card padding="none" className="flex flex-col gap-5 px-7 py-[26px]">
+        <div>
+          <h3 className="text-field font-medium">Pre-scoring filters</h3>
+          <p className="text-meta text-muted">
+            Skip matching postings before AI evaluation to save tokens and eliminate noise.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label="Exclude keywords"
+            hint="Comma-separated terms in title/description (e.g. clearance, unpaid, wordpress)"
+            value={settings.excludeKeywords ?? ""}
+            onChange={(event) => setSettings((cur) => ({ ...cur, excludeKeywords: event.target.value }))}
+            onBlur={() => change({ excludeKeywords: settings.excludeKeywords ?? "" })}
+          />
+          <Input
+            label="Exclude companies"
+            hint="Comma-separated company names to skip (e.g. Revature, CyberCoders)"
+            value={settings.excludeCompanies ?? ""}
+            onChange={(event) => setSettings((cur) => ({ ...cur, excludeCompanies: event.target.value }))}
+            onBlur={() => change({ excludeCompanies: settings.excludeCompanies ?? "" })}
+          />
+          <Input
+            label="Minimum annual salary"
+            hint="Skip postings with disclosed compensation lower than this floor"
+            type="number"
+            placeholder="e.g. 80000"
+            value={settings.minSalary != null ? String(settings.minSalary) : ""}
+            onChange={(event) => {
+              const val = event.target.value ? Number(event.target.value) : null;
+              setSettings((cur) => ({ ...cur, minSalary: val }));
+            }}
+            onBlur={() => change({ minSalary: settings.minSalary ?? null })}
+          />
+          <div className="flex items-center pt-2 sm:pt-6">
+            <Toggle
+              label="Require disclosed compensation"
+              description={
+                settings.requireSalary
+                  ? "On. Postings that do not mention a salary are skipped."
+                  : "Off. Postings without salary information are kept."
+              }
+              checked={Boolean(settings.requireSalary)}
+              onCheckedChange={(requireSalary) => change({ requireSalary })}
+            />
+          </div>
+        </div>
       </Card>
 
       <p className="text-meta text-muted">

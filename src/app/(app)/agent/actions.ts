@@ -35,6 +35,10 @@ export const saveAgentSettings = action(
     aiModel: z.string().nullable().optional(),
     batchProcessing: z.boolean().optional(),
     batchSize: z.number().int().min(1).max(10).optional(),
+    excludeKeywords: z.string().optional(),
+    excludeCompanies: z.string().optional(),
+    minSalary: z.number().int().min(0).nullable().optional(),
+    requireSalary: z.boolean().optional(),
   }).strict(),
   async (changes) => {
     if (changes.enabled) {
@@ -52,6 +56,10 @@ export const saveAgentSettings = action(
       ...(changes.aiModel !== undefined ? { agentAiModel: changes.aiModel } : {}),
       ...(changes.batchProcessing !== undefined ? { agentBatchProcessing: changes.batchProcessing } : {}),
       ...(changes.batchSize !== undefined ? { agentBatchSize: changes.batchSize } : {}),
+      ...(changes.excludeKeywords !== undefined ? { agentExcludeKeywords: changes.excludeKeywords } : {}),
+      ...(changes.excludeCompanies !== undefined ? { agentExcludeCompanies: changes.excludeCompanies } : {}),
+      ...(changes.minSalary !== undefined ? { agentMinSalary: changes.minSalary } : {}),
+      ...(changes.requireSalary !== undefined ? { agentRequireSalary: changes.requireSalary } : {}),
     });
     revalidatePath("/agent");
     revalidatePath("/settings");

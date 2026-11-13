@@ -48,6 +48,17 @@ export const EXPERIENCE_LEVELS = [
 export type ExperienceLevel = (typeof EXPERIENCE_LEVELS)[number]["value"];
 const LEVEL_VALUES = EXPERIENCE_LEVELS.map((option) => option.value) as [ExperienceLevel, ...ExperienceLevel[]];
 
+/** The employment type a search asks for. */
+export const EMPLOYMENT_TYPES = [
+  { value: "any", label: "Any type" },
+  { value: "fulltime", label: "Full-time" },
+  { value: "parttime", label: "Part-time" },
+  { value: "contract", label: "Contract" },
+  { value: "internship", label: "Internship" },
+] as const;
+export type EmploymentType = (typeof EMPLOYMENT_TYPES)[number]["value"];
+const EMPLOYMENT_VALUES = EMPLOYMENT_TYPES.map((option) => option.value) as [EmploymentType, ...EmploymentType[]];
+
 /** One search, as every source gets it. */
 export const searchQuerySchema = z.object({
   keywords: z.string().trim().max(200),
@@ -64,12 +75,20 @@ export const searchQuerySchema = z.object({
   postedWithin: z.enum(POSTED_VALUES),
   /** Missing in searches from before 1.12.0, which means any. */
   experience: z.enum(LEVEL_VALUES).optional(),
+  /** Employment type filter. */
+  employmentType: z.enum(EMPLOYMENT_VALUES).optional(),
+  /** Excluded keywords (comma-separated negative filter). */
+  excludeKeywords: z.string().trim().max(300).optional(),
 });
 export type SearchQuery = z.output<typeof searchQuerySchema>;
 
 /** The level a search asks for, or null for any. */
 export const experienceAskedFor = (query: Pick<SearchQuery, "experience">): Exclude<ExperienceLevel, "any"> | null =>
   query.experience && query.experience !== "any" ? query.experience : null;
+
+/** The employment type a search asks for, or null for any. */
+export const employmentTypeAskedFor = (query: Pick<SearchQuery, "employmentType">): Exclude<EmploymentType, "any"> | null =>
+  query.employmentType && query.employmentType !== "any" ? query.employmentType : null;
 
 export const EMPTY_QUERY: SearchQuery = {
   keywords: "",
@@ -203,7 +222,9 @@ export function queryFromParams(params: Record<string, string | string[] | undef
   const radius = Number(one(params.radius));
   const posted = POSTED_VALUES.find((value) => value === one(params.posted));
   const level = LEVEL_VALUES.find((value) => value === one(params.level));
+  const type = EMPLOYMENT_VALUES.find((value) => value === one(params.type));
   const country = one(params.country).trim().toLowerCase();
+  const exclude = one(params.exclude).trim();
   return {
     keywords: keywords.slice(0, 200),
     place: one(params.where).trim().slice(0, 200),
@@ -212,6 +233,8 @@ export function queryFromParams(params: Record<string, string | string[] | undef
     remoteOnly: one(params.remote) === "1",
     postedWithin: posted ?? "any",
     ...(level && level !== "any" ? { experience: level } : {}),
+    ...(type && type !== "any" ? { employmentType: type } : {}),
+    ...(exclude ? { excludeKeywords: exclude.slice(0, 300) } : {}),
   };
 }
 
@@ -238,6 +261,9 @@ export function searchHref(query: SearchQuery): string {
   if (query.postedWithin !== "any") params.set("posted", query.postedWithin);
   const level = experienceAskedFor(query);
   if (level) params.set("level", level);
+  const type = employmentTypeAskedFor(query);
+  if (type) params.set("type", type);
+  if (query.excludeKeywords) params.set("exclude", query.excludeKeywords);
   return `/jobs?${params.toString()}`;
 }
 

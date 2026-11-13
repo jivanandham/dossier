@@ -72,6 +72,10 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
             aiModel: settings.agentAiModel,
             batchProcessing: settings.agentBatchProcessing,
             batchSize: settings.agentBatchSize,
+            excludeKeywords: settings.agentExcludeKeywords,
+            excludeCompanies: settings.agentExcludeCompanies,
+            minSalary: settings.agentMinSalary,
+            requireSalary: settings.agentRequireSalary,
           }}
           searches={await listAgentSearches()}
           suggestedQuery={(await loadSearch())?.query}

@@ -6,6 +6,7 @@ import type { JobSourceAdapter, RequestContext, SourceCredentials } from "./adap
 import { cached, remember } from "./cache";
 import { JobSearchError, jobSearchError } from "./errors";
 import { fitsExperience } from "./experience";
+import { fitsEmploymentType, matchesExclusion } from "./posting-filters";
 import { adzuna } from "./adzuna";
 import { arbeitsagentur } from "./arbeitsagentur";
 import { freehire } from "./freehire";
@@ -58,8 +59,16 @@ export async function searchPostings<S extends JobSource>(
   const hit = cached<SearchPage>(key);
   if (hit) return hit;
   const found = await logged(() => adapter.search(query, credentials, next, context));
-  // Postings clearly for another level go (public issue 59); ones that don't say stay.
-  const page = { ...found, postings: found.postings.filter((posting) => fitsExperience(posting, query)) };
+  // Postings clearly for another level or type go, and excluded keywords are omitted.
+  const page = {
+    ...found,
+    postings: found.postings.filter(
+      (posting) =>
+        fitsExperience(posting, query) &&
+        fitsEmploymentType(posting, query) &&
+        !matchesExclusion(posting, { excludeKeywords: query.excludeKeywords }),
+    ),
+  };
   remember(key, page);
   return page;
 }

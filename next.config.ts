@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allow Tailscale and local origins in development to prevent HMR reload loops
+  allowedDevOrigins: [
+    "jeevas-mac-mini.taile5c631.ts.net",
+    "*.ts.net",
+    "localhost",
+    "localhost:3000",
+    "127.0.0.1",
+    "127.0.0.1:3000",
+  ],
   // The production image runs .next/standalone: the server and only the files
   // it needs (E12-1).
   output: "standalone",

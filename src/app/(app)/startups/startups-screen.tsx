@@ -117,6 +117,36 @@ export function StartupsScreen({ filter, list, lastRefresh, refreshJobId, city, 
             )}
           </>
         )}
+
+        <div className="rounded-panel border border-line-card bg-card px-6 py-5 text-sm">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="font-serif text-section">European Startup Ecosystem & Discovery Directories</h3>
+            <span className="text-meta text-muted">France & Europe Databases</span>
+          </div>
+          <p className="mt-1 text-meta text-muted">
+            Explore broader scale-up rankings, funding rounds, and verified tech ecosystems across France and Europe:
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-meta">
+            <a href="https://lafrenchtech.gouv.fr/en/join-a-start-up-of-our-ecosystem/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              French Tech Next40 / 120 ↗
+            </a>
+            <a href="https://dealroom.co/lists/startups-france/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              Dealroom France & Europe ↗
+            </a>
+            <a href="https://www.eu-startups.com/directory/" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              EU-Startups Directory ↗
+            </a>
+            <a href="https://wellfound.com/startups/location/france" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              Wellfound France (Remote) ↗
+            </a>
+            <a href="https://www.f6s.com/companies/france/lo" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              F6S Europe ↗
+            </a>
+            <a href="https://vivatech.com/top-100-rising-european-startups" target="_blank" rel="noopener noreferrer" className="text-ink underline underline-offset-2 hover:text-accent">
+              VivaTech Top 100 Rising Startups ↗
+            </a>
+          </div>
+        </div>
       </div>
     </>
   );
@@ -210,7 +240,7 @@ function Filters({ filter, city, country, onChange }: { filter: StartupFilter; c
         <option value="remote">Remote{country ? `, open to ${country}` : ""}</option>
       </Select>
       <Select label="Source" value={filter.source} onChange={(event) => onChange({ source: event.target.value as StartupFilter["source"] })}>
-        <option value="">Both sources</option>
+        <option value="">All sources</option>
         {STARTUP_SOURCES.map((source) => (
           <option key={source} value={source}>
             {STARTUP_SOURCE_INFO[source].name}

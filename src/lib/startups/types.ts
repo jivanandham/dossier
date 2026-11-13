@@ -5,12 +5,13 @@ import { z } from "zod";
 // against the profile, with the addresses they publish for applications.
 // Shared by the server and the screen.
 
-export const STARTUP_SOURCES = ["YC", "HN"] as const;
+export const STARTUP_SOURCES = ["YC", "HN", "EU"] as const;
 export type StartupSource = (typeof STARTUP_SOURCES)[number];
 
 export const STARTUP_SOURCE_INFO: Record<StartupSource, { name: string; kind: string }> = {
   YC: { name: "Y Combinator", kind: "Job post" },
   HN: { name: "Hacker News", kind: "Who is hiring?" },
+  EU: { name: "European Tech", kind: "Scaleup & Unicorn" },
 };
 
 export const STARTUP_STATUSES = ["NEW", "SAVED", "CONTACTED", "DISMISSED"] as const;

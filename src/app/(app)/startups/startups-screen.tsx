@@ -378,8 +378,8 @@ function StartupCard({ startup: initial, headline, aiReady, today }: { startup: 
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line pt-3 text-meta">
-        {startup.links.map((link) => (
-          <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="text-muted underline underline-offset-2 hover:text-ink">
+        {startup.links.map((link, index) => (
+          <a key={`${link.label}:${link.url}:${index}`} href={link.url} target="_blank" rel="noopener noreferrer" className="text-muted underline underline-offset-2 hover:text-ink">
             {link.label} ↗
           </a>
         ))}

@@ -198,7 +198,7 @@ export const STARTUPS: FoundStartup[] = [
     roles: ["Senior Software Engineer", "Developer Experience Engineer", "Product Manager"],
     emails: [{ email: "jobs@forestadmin.com", label: "Hiring", from: "https://www.forestadmin.com", onRequest: false, foundAt: new Date().toISOString() }],
     links: [
-      { label: "Careers & Jobs", url: "https://www.forestadmin.com" },
+      { label: "Careers & Jobs", url: "https://www.forestadmin.com/careers" },
       { label: "Website", url: "https://www.forestadmin.com" },
     ],
     postedAt: new Date().toISOString(),
@@ -744,7 +744,7 @@ export const STARTUPS: FoundStartup[] = [
     roles: ["Battery Research Engineer", "Embedded Systems Specialist", "Process Engineer"],
     emails: [{ email: "careers@lyten.com", label: "Hiring", from: "https://lyten.com", onRequest: false, foundAt: new Date().toISOString() }],
     links: [
-      { label: "Careers & Jobs", url: "https://lyten.com" },
+      { label: "Careers & Jobs", url: "https://lyten.com/careers" },
       { label: "Website", url: "https://lyten.com" },
     ],
     postedAt: new Date().toISOString(),

@@ -12,6 +12,7 @@ import { arbeitsagentur } from "./arbeitsagentur";
 import { francetravail } from "./francetravail";
 import { freehire } from "./freehire";
 import { jsearch } from "./jsearch";
+import { startups } from "./startups";
 import { wttj } from "./wttj";
 import { postingKey, type FoundPosting, type JobSource, type SearchPage, type SearchQuery } from "./search";
 import { sourceCovers } from "./sources";
@@ -31,6 +32,7 @@ const ADAPTERS: { [S in JobSource]: JobSourceAdapter<S> } = {
   ADZUNA: adzuna,
   ARBEITSAGENTUR: arbeitsagentur,
   FREEHIRE: freehire,
+  STARTUPS: startups,
 };
 
 const adapterFor = <S extends JobSource>(source: S) => ADAPTERS[source] as JobSourceAdapter<S>;

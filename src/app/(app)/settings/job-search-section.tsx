@@ -214,6 +214,12 @@ export function JobSearchSection({ initial }: { initial: JobSearchSettingsView }
                   : `No key needed. Dossier searches your own FreeHire at ${view.freehire.host}.`}
               </p>
             )}
+            {source === "STARTUPS" && (
+              <p className="text-sm text-muted">
+                No key needed. Find jobs searches the open roles Dossier read from the job boards of the startups on your Startups screen; use
+                &ldquo;Find their jobs&rdquo; there to read them again. Nothing leaves your server when you search.
+              </p>
+            )}
             {source === "WTTJ" && (
               <p className="text-sm text-muted">
                 No key needed. Dossier searches Welcome to the Jungle&apos;s live tech and startup job index in France and Europe.

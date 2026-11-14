@@ -109,6 +109,7 @@ describe("stored settings", () => {
       agentRuns: [],
       startupsViewedAt: null,
       startupsLastRefresh: null,
+      startupJobsLastRun: null,
       updateCheck: true,
       latestVersion: null,
       latestVersionUrl: null,

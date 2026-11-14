@@ -13,7 +13,7 @@ import type { FoundStartup } from "./types";
 export const MATCH_VERSION = "match@1";
 
 /** Skills too general to say anything about a fit. */
-const GENERIC = /^(agile|scrum|kanban|git|github|gitlab|jira|confluence|slack|ci\/cd( pipelines)?|communication|teamwork|leadership|problem solving|ms office|microsoft office|excel|english)$/i;
+export const GENERIC = /^(agile|scrum|kanban|git|github|gitlab|jira|confluence|slack|ci\/cd( pipelines)?|communication|teamwork|leadership|problem solving|ms office|microsoft office|excel|english)$/i;
 
 /** Kinds of work, recognised in the profile and in a startup's text. */
 const FIELDS: { name: string; profile: RegExp; startup: RegExp }[] = [
@@ -29,7 +29,7 @@ const FIELDS: { name: string; profile: RegExp; startup: RegExp }[] = [
 const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** A skill as a pattern that matches it as a word, e.g. "Node.js" also as "nodejs". */
-function skillPattern(skill: string): RegExp {
+export function skillPattern(skill: string): RegExp {
   const spelled = escape(skill.toLowerCase()).replace(/\\\.(?=js\b)/, "\\.?").replace(/\s+/g, "[\\s-]?");
   return new RegExp(`(^|[^a-z0-9+#])${spelled}($|[^a-z0-9+#])`, "i");
 }

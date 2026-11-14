@@ -106,6 +106,18 @@ export const SOURCE_INFO: Record<JobSource, SourceInfo> = {
     countries: ["de"],
     radius: true,
   },
+  STARTUPS: {
+    name: "Startup career pages",
+    description:
+      "The open roles of the startups on your Startups screen, read from their own job boards (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Welcome to the Jungle).",
+    tag: "Your Startups list · free, no key · searched on your server",
+    keyUrl: null,
+    quotaPeriod: null,
+    attribution: null,
+    attributionLink: null,
+    countries: null,
+    radius: false,
+  },
   FREEHIRE: {
     name: "FreeHire",
     description: "Mostly tech postings, read straight from company career pages (Greenhouse, Lever, Workday and more), with full postings.",

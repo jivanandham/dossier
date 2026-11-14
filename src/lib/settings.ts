@@ -6,7 +6,7 @@ import { JOB_SOURCES, JSEARCH_HOSTS } from "@/lib/job-search/search";
 import { DEFAULT_SECTION_LAYOUT, sectionLayoutSchema } from "@/lib/resume-sections";
 import { setupGuideSchema } from "@/lib/setup-guide";
 import { SCORERS } from "@/lib/scoring/scorers";
-import { startupsRefreshSchema } from "@/lib/startups/types";
+import { startupJobsRunSchema, startupsRefreshSchema } from "@/lib/startups/types";
 import { AGENT_MAX_SOURCE_REQUESTS_PER_DAY } from "@/lib/agent/limits";
 import { AI_TIMEOUT_LIMITS } from "@/lib/ai/provider-options";
 
@@ -235,6 +235,8 @@ export const settingsSchema = z.object({
   // to the install, not its data, so exports leave them out (INSTALL_SETTINGS).
   startupsViewedAt: z.iso.datetime().nullable().catch(null),
   startupsLastRefresh: json(startupsRefreshSchema).nullable().catch(null),
+  /** What the last "Find their jobs" on the Startups screen did. */
+  startupJobsLastRun: json(startupJobsRunSchema).nullable().catch(null),
   /** "Check for updates daily" in Settings → About (update-check.ts). */
   updateCheck: flag(true),
   // The newest release the update check has seen, the UTC day it last

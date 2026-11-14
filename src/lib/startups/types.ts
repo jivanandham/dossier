@@ -140,3 +140,45 @@ export const startupsRefreshSchema = z.object({
   emailsFound: z.number().int(),
 });
 export type StartupsRefresh = z.infer<typeof startupsRefreshSchema>;
+
+/** What the last "Find their jobs" did, kept in Settings (startupJobsLastRun) for the screen. */
+export const startupJobsRunSchema = z.object({
+  at: z.string(),
+  /** Startups looked at, and the ones with a job board found. */
+  startups: z.number().int(),
+  boards: z.number().int(),
+  /** Open roles listed on those boards, and how many were new. */
+  jobs: z.number().int(),
+  added: z.number().int(),
+  /** Roles scored against the profile this time. */
+  scored: z.number().int(),
+  /** Why roles weren't scored (no AI provider, a failing model), or null. */
+  problem: z.string().nullable(),
+});
+export type StartupJobsRun = z.infer<typeof startupJobsRunSchema>;
+
+/** One open role on a startup's card. The posting itself stays on the server, found again by `externalId`. */
+export type StartupJobCard = {
+  externalId: string;
+  title: string;
+  place: string;
+  remote: boolean | null;
+  department: string;
+  url: string;
+  postedAt: string | null;
+  /** 0–100, worked out in code: how close the role is to the profile before any AI score. */
+  relevance: number;
+  score: { score: number; reasons: string[]; redFlags: string[] } | null;
+  applicationId: string | null;
+};
+
+/** A startup's job board and its best roles for the profile. */
+export type StartupJobsView = {
+  /** The board's name ("Lever"), "" when none was found. */
+  boardName: string;
+  boardUrl: string;
+  checkedAt: string | null;
+  error: string;
+  total: number;
+  jobs: StartupJobCard[];
+};

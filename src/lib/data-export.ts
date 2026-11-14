@@ -65,6 +65,7 @@ export const INSTALL_SETTINGS: readonly string[] = [
   // When Startups was last opened and what its last refresh found (#222).
   "startupsViewedAt",
   "startupsLastRefresh",
+  "startupJobsLastRun",
   "latestVersion",
   "latestVersionUrl",
   "updateCheckDay",

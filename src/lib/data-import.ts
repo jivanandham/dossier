@@ -113,6 +113,8 @@ export async function importExport(db: PrismaClient, data: DossierExport): Promi
       await tx.postingSearch.deleteMany();
       await tx.agentCandidate.deleteMany();
       await tx.agentSearch.deleteMany();
+      await tx.startupJob.deleteMany();
+      await tx.startupBoard.deleteMany();
       await tx.startup.deleteMany();
       await tx.startupBlock.deleteMany();
       // Scores of postings (#208) belong to the profile being replaced; they're left out of exports, since they can be made again.

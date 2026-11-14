@@ -243,3 +243,35 @@ export const wttj: JobSourceAdapter<"WTTJ"> = {
     );
   },
 };
+
+/**
+ * Every open role of one company on Welcome to the Jungle (its page
+ * welcometothejungle.com/…/companies/<slug>), for Startups' job boards.
+ * Limited in time like the other sources' requests.
+ */
+export async function wttjOrganizationPostings(slug: string, signal?: AbortSignal): Promise<FoundPosting[]> {
+  const timeout = AbortSignal.timeout(15_000);
+  const params = new URLSearchParams({ page: "0", hitsPerPage: "100", facetFilters: JSON.stringify([[`organization.slug:${slug}`]]) }).toString();
+  let response: Response;
+  try {
+    response = await fetch(ALGOLIA_URL, {
+      method: "POST",
+      headers: { "X-Algolia-Application-Id": APP_ID, "X-Algolia-API-Key": API_KEY, "Content-Type": "application/json", Referer: "https://www.welcometothejungle.com/" },
+      body: JSON.stringify({ requests: [{ indexName: INDEX_NAME, query: "", params }] }),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    });
+  } catch (error) {
+    throw jobSearchError("unavailable", "WTTJ", { detail: timeout.aborted ? "organization: timed out" : String(error) });
+  }
+  if (!response.ok) throw jobSearchError("unavailable", "WTTJ", { detail: `organization: HTTP ${response.status}` });
+  let json: { results?: Array<{ hits?: unknown[] }> };
+  try {
+    json = (await response.json()) as typeof json;
+  } catch {
+    throw jobSearchError("changed", "WTTJ", { detail: "organization: not JSON" });
+  }
+  return (json.results?.[0]?.hits ?? []).flatMap((item) => {
+    const parsed = hitSchema.safeParse(item);
+    return parsed.success ? [postingFromHit(parsed.data)] : [];
+  });
+}

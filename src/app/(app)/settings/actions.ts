@@ -377,6 +377,8 @@ export const deleteEverything = action(z.object({ confirm: z.literal("DELETE") }
     await tx.agentSearch.deleteMany();
     await tx.postingScore.deleteMany();
     // Startups, and the fingerprints of ones removed for good (#222).
+    await tx.startupJob.deleteMany();
+    await tx.startupBoard.deleteMany();
     await tx.startup.deleteMany();
     await tx.startupBlock.deleteMany();
     // Mail fetched from Gmail (E15-3).

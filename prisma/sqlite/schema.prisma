@@ -673,6 +673,8 @@ enum PostingSource {
   WTTJ
   /// France Travail's official Offres d'emploi v2 API (France).
   FRANCETRAVAIL
+  /// Open roles read from the career pages (Greenhouse, Lever, Ashby…) of the startups on the Startups screen.
+  STARTUPS
 }
 
 /// A posting from Find jobs that the user kept (E14-5): saved, dismissed, or
@@ -898,11 +900,54 @@ model Startup {
   /// The application started from it ("Write to them"); deleting the application keeps the startup.
   applicationId      String?       @unique
   application        Application?  @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  /// Its open roles, read from its job board, and which board that is.
+  jobs               StartupJob[]
+  board              StartupBoard?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
 
   @@unique([source, externalId])
   @@index([status, score])
+}
+
+/// Where a startup lists its open roles: a job board found on its site or in
+/// its post, e.g. "lever:strapi"; "" when none was found. Checked again after
+/// a week, so a startup that moves boards is found again.
+model StartupBoard {
+  startupId String   @id
+  startup   Startup  @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  board     String   @default("")
+  /// What went wrong reading it last time, in words; "" when it worked.
+  error     String   @default("")
+  checkedAt DateTime
+}
+
+/// An open role at a startup, read from its job board. Postings in Find jobs'
+/// shape come from these (source STARTUPS, externalId as here), so scores,
+/// saving and "Start application" work as for any posting.
+model StartupJob {
+  id          String    @id @default(cuid())
+  startupId   String
+  startup     Startup   @relation(fields: [startupId], references: [id], onDelete: Cascade)
+  /// The board and the board's own id: "lever:strapi:3f2a…".
+  externalId  String    @unique
+  board       String
+  title       String
+  place       String    @default("")
+  remote      Boolean?
+  department  String    @default("")
+  url         String    @default("")
+  /// Plain text; only the start when `complete` is false.
+  description String    @default("")
+  complete    Boolean   @default(true)
+  postedAt    DateTime?
+  /// 0–100, worked out in code against the profile: which roles are worth an AI score.
+  relevance   Int       @default(0)
+  /// When a read of the board last listed it; ones it no longer lists go.
+  seenAt      DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+
+  @@index([startupId, relevance])
 }
 
 /// A startup removed with "Remove and don't bring back" (#222): only a

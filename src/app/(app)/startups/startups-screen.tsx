@@ -24,16 +24,36 @@ import {
   startupFilterHref,
   type StartupEmail,
   type StartupFilter,
+  type StartupJobCard,
+  type StartupJobsRun,
+  type StartupJobsView,
   type StartupsRefresh,
   type StartupStatusName,
   type StartupView,
 } from "@/lib/startups/types";
 
-import { lookUpStartupAddresses, refreshStartupsNow, removeStartupForGood, saveStartupNotes, setStartupStatus } from "./actions";
+import {
+  dismissStartupRole,
+  findStartupJobsNow,
+  lookUpStartupAddresses,
+  refreshStartupsNow,
+  removeStartupForGood,
+  saveStartupNotes,
+  scoreStartupRole,
+  setStartupStatus,
+  startApplicationFromRole,
+} from "./actions";
 
 export type StartupsScreenProps = {
   filter: StartupFilter;
   list: { startups: StartupView[]; total: number; counts: Record<StartupStatusName, number> };
+  /** Each startup's job board and best open roles, by startup id. */
+  roles: Record<string, StartupJobsView>;
+  lastJobsRun: StartupJobsRun | null;
+  /** "Find their jobs" under way, to follow after a reload. */
+  jobsJobId: string | null;
+  /** Why roles can't be scored (no AI provider, no Jev key), or null. */
+  scoringProblem: string | null;
   lastRefresh: StartupsRefresh | null;
   refreshJobId: string | null;
   /** The profile's city and country, for the place filter; "" when not set. */
@@ -59,10 +79,40 @@ const VIEWS: { status: StartupStatusName; label: string }[] = [
  * the addresses they publish for applications. Dossier sends nothing: the
  * user writes to each one, from New application or their own mail.
  */
-export function StartupsScreen({ filter, list, lastRefresh, refreshJobId, city, country, headline, aiReady, today }: StartupsScreenProps) {
+export function StartupsScreen({
+  filter,
+  list,
+  roles,
+  lastJobsRun,
+  jobsJobId,
+  scoringProblem,
+  lastRefresh,
+  refreshJobId,
+  city,
+  country,
+  headline,
+  aiReady,
+  today,
+}: StartupsScreenProps) {
   const router = useRouter();
   const [jobId, setJobId] = useState(refreshJobId);
   const [starting, startTransition] = useTransition();
+  const [rolesJobId, setRolesJobId] = useState(jobsJobId);
+
+  const rolesJob = useJob<StartupJobsRun>(rolesJobId, 0, (update) => {
+    if (update.status !== "DONE" && update.status !== "FAILED") return;
+    setRolesJobId(null);
+    if (update.status === "FAILED") return toast(update.error ?? "Reading their job boards didn't finish. Try again.");
+    const run = update.result;
+    if (run) toast(`Found ${run.jobs} open ${run.jobs === 1 ? "role" : "roles"} at ${run.boards} ${run.boards === 1 ? "startup" : "startups"}${run.scored ? `, and scored the ${run.scored} closest` : ""}.`);
+    router.refresh();
+  });
+  const findingRoles = Boolean(rolesJobId) && (!rolesJob || rolesJob.status === "QUEUED" || rolesJob.status === "RUNNING");
+  const findRoles = () =>
+    startTransition(async () => {
+      const result = toastResult(await findStartupJobsNow({}));
+      if (result.ok) setRolesJobId(result.data.jobId);
+    });
 
   const job = useJob<StartupsRefresh>(jobId, 0, (update) => {
     if (update.status !== "DONE" && update.status !== "FAILED") return;
@@ -88,13 +138,21 @@ export function StartupsScreen({ filter, list, lastRefresh, refreshJobId, city, 
         title="Startups"
         description="Startups that are hiring, from YC startups' job posts and Hacker News' “Who is hiring?”, ranked against your profile, with the address each one publishes for applications. You write to each one yourself."
         actions={
-          <Button aria-disabled={refreshing || starting || undefined} onClick={() => !refreshing && !starting && refresh()}>
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </Button>
+          <>
+            {lastRefresh && (
+              <Button variant="secondary" aria-disabled={findingRoles || refreshing || starting || undefined} onClick={() => !findingRoles && !refreshing && !starting && findRoles()}>
+                {findingRoles ? "Reading their job boards…" : "Find their jobs"}
+              </Button>
+            )}
+            <Button aria-disabled={refreshing || starting || undefined} onClick={() => !refreshing && !starting && refresh()}>
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+          </>
         }
       />
       <div className="flex flex-col gap-6 px-4 sm:px-6 md:px-10 pb-12 sm:pb-20">
         <RefreshStatus lastRefresh={lastRefresh} refreshing={refreshing} step={job?.step ?? null} today={today} />
+        {lastRefresh && <RolesStatus run={lastJobsRun} finding={findingRoles} step={rolesJob?.step ?? null} today={today} />}
         {lastRefresh && (
           <>
             <ViewTabs filter={filter} counts={list.counts} />
@@ -110,7 +168,7 @@ export function StartupsScreen({ filter, list, lastRefresh, refreshJobId, city, 
                 <ul className="flex flex-col gap-3">
                   {list.startups.map((startup) => (
                     <li key={`${startup.id}:${startup.status}:${startup.emails.length}:${startup.score}`}>
-                      <StartupCard startup={startup} headline={headline} aiReady={aiReady} today={today} />
+                      <StartupCard startup={startup} roles={roles[startup.id]} scoringProblem={scoringProblem} headline={headline} aiReady={aiReady} today={today} />
                     </li>
                   ))}
                 </ul>
@@ -250,7 +308,21 @@ function Empty({ filter }: { filter: StartupFilter }) {
 const mailto = (email: string, company: string, headline: string) =>
   `mailto:${email}?subject=${encodeURIComponent(headline ? `${headline}, interested in joining ${company}` : `Interested in joining ${company}`)}`;
 
-function StartupCard({ startup: initial, headline, aiReady, today }: { startup: StartupView; headline: string; aiReady: boolean; today: string }) {
+function StartupCard({
+  startup: initial,
+  roles,
+  scoringProblem,
+  headline,
+  aiReady,
+  today,
+}: {
+  startup: StartupView;
+  roles: StartupJobsView | undefined;
+  scoringProblem: string | null;
+  headline: string;
+  aiReady: boolean;
+  today: string;
+}) {
   const router = useRouter();
   const [startup, setStartup] = useState(initial);
   const [open, setOpen] = useState(false);
@@ -321,6 +393,8 @@ function StartupCard({ startup: initial, headline, aiReady, today }: { startup: 
       )}
 
       {startup.reasons.length > 0 && <p className="text-meta text-muted">{startup.reasons.join(" · ")}</p>}
+
+      {roles && <OpenRoles company={startup.company} roles={roles} scoringProblem={scoringProblem} aiReady={aiReady} today={today} />}
 
       {blocked && (
         <p role="note" className="rounded-card bg-warning-surface px-4 py-2.5 text-meta text-warning">
@@ -450,6 +524,170 @@ function Emails({ emails, company, headline, peopleChecked }: { emails: StartupE
       {peopleChecked && emails.some((entry) => entry.onRequest) && (
         <p className="text-meta text-muted">People&apos;s own addresses are dropped after 14 days unless you write to this startup.</p>
       )}
+    </div>
+  );
+}
+
+/** What the last "Find their jobs" found, or what it's doing now. */
+function RolesStatus({ run, finding, step, today }: { run: StartupJobsRun | null; finding: boolean; step: string | null; today: string }) {
+  if (finding) {
+    return (
+      <p role="status" className="text-meta text-muted">
+        {step ?? "Reading their job boards…"}
+      </p>
+    );
+  }
+  if (!run) {
+    return (
+      <p className="text-meta text-muted">
+        Only the startups are listed so far. <strong className="font-medium text-ink">Find their jobs</strong> reads the job boards of your best matches
+        (Greenhouse, Lever, Ashby, Workable, Recruitee, SmartRecruiters, Welcome to the Jungle) and scores the roles closest to your profile.
+      </p>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      <p className="text-meta text-muted">
+        {`${run.jobs} open ${run.jobs === 1 ? "role" : "roles"} on the job boards of ${run.boards} of ${run.startups} startups`}
+        {run.added > 0 ? `, ${run.added} new` : ""}
+        {run.scored > 0 ? ` · ${run.scored} scored` : ""} · {formatDateTime(new Date(run.at), undefined, new Date(today))}
+      </p>
+      {run.problem && (
+        <p role="note" className="rounded-card bg-warning-surface px-4 py-2.5 text-meta text-warning">
+          Roles weren&apos;t scored: {run.problem}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A startup's open roles, read from its job board: the ones scored against
+ * the profile first, then the closest by title, skills and place. Each can
+ * be scored, started as an application, or put aside.
+ */
+function OpenRoles({ company, roles, scoringProblem, aiReady, today }: { company: string; roles: StartupJobsView; scoringProblem: string | null; aiReady: boolean; today: string }) {
+  if (!roles.boardName && roles.total === 0) {
+    return <p className="text-meta text-muted">No job board found in their post or on their careers page.</p>;
+  }
+  return (
+    <section aria-label={`Open roles at ${company}`} className="flex flex-col gap-2 rounded-card border border-line-field bg-paper px-4 py-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h4 className="text-label font-medium">
+          {roles.total === 0 ? "No open roles listed" : `${roles.total} open ${roles.total === 1 ? "role" : "roles"}`}
+          {roles.boardName ? ` on ${roles.boardName}` : ""}
+        </h4>
+        {roles.total > roles.jobs.length && <span className="text-xs text-muted">the {roles.jobs.length} closest to your profile</span>}
+        {roles.boardUrl && (
+          <a href={roles.boardUrl} target="_blank" rel="noopener noreferrer" className="ml-auto text-meta text-muted underline underline-offset-2 hover:text-ink">
+            All of them ↗
+          </a>
+        )}
+      </div>
+      {roles.error && <p className="text-meta text-warning">{roles.error}. The roles below are from the last time it could be read.</p>}
+      {roles.jobs.length > 0 && (
+        <ul className="flex flex-col divide-y divide-line">
+          {roles.jobs.map((role) => (
+            <li key={role.externalId}>
+              <RoleRow role={role} scoringProblem={scoringProblem} aiReady={aiReady} today={today} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function RoleRow({ role: initial, scoringProblem, aiReady, today }: { role: StartupJobCard; scoringProblem: string | null; aiReady: boolean; today: string }) {
+  const router = useRouter();
+  const [role, setRole] = useState(initial);
+  const [scoreJobId, setScoreJobId] = useState<string | null>(null);
+  const [busy, setBusy] = useState<"score" | "apply" | "dismiss" | null>(null);
+  const [hidden, setHidden] = useState(false);
+
+  const scoring = useJob<{ score: number; reasons: string[]; redFlags: string[] }>(scoreJobId, 0, (update) => {
+    if (update.status !== "DONE" && update.status !== "FAILED") return;
+    setScoreJobId(null);
+    setBusy(null);
+    if (update.status === "FAILED") return toast(update.error ?? "The score didn't finish. Try again.");
+    if (update.result) setRole((current) => ({ ...current, score: update.result! }));
+  });
+  const scoringNow = busy === "score" || (Boolean(scoreJobId) && scoring?.status !== "DONE" && scoring?.status !== "FAILED");
+
+  const score = async () => {
+    if (busy) return;
+    setBusy("score");
+    const result = toastResult(await scoreStartupRole({ externalId: role.externalId }));
+    if (result.ok) setScoreJobId(result.data.jobId);
+    else setBusy(null);
+  };
+
+  const apply = async () => {
+    if (busy) return;
+    setBusy("apply");
+    const result = toastResult(await startApplicationFromRole({ externalId: role.externalId }));
+    if (!result.ok) return setBusy(null);
+    router.push(`/new?posting=${encodeURIComponent(result.data.postingId)}`);
+  };
+
+  const dismiss = async () => {
+    if (busy) return;
+    setBusy("dismiss");
+    const result = toastResult(await dismissStartupRole({ externalId: role.externalId }));
+    setBusy(null);
+    if (!result.ok) return;
+    setHidden(true);
+    toast(`Put “${role.title}” aside.`, {
+      action: {
+        label: "Undo",
+        onClick: () => void dismissStartupRole({ externalId: role.externalId, undo: true }).then((undone) => toastResult(undone).ok && setHidden(false)),
+      },
+    });
+  };
+
+  if (hidden) return null;
+  const posted = postedAgo(role.postedAt, new Date(today));
+  const meta = [role.place, role.remote && !/remote/i.test(role.place) ? "Remote" : "", role.department, posted].filter(Boolean).join(" · ");
+  return (
+    <div className="flex flex-wrap items-start gap-3 py-2.5">
+      {role.score ? (
+        <ScoreBadge score={role.score.score} size="sm" />
+      ) : (
+        <span title="How close the title, skills and place are to your profile, before any score" className="mt-0.5 h-6 min-w-6 rounded-full border border-dashed border-line-field px-1.5 text-center font-mono text-xs leading-6 text-faint">
+          {role.relevance}
+        </span>
+      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        {role.url ? (
+          <a href={role.url} target="_blank" rel="noopener noreferrer" className="text-sm font-medium underline-offset-2 hover:underline">
+            {role.title} ↗
+          </a>
+        ) : (
+          <span className="text-sm font-medium">{role.title}</span>
+        )}
+        {meta && <span className="text-meta text-muted">{meta}</span>}
+        {role.score && role.score.reasons.length > 0 && <span className="text-meta text-muted">{role.score.reasons.slice(0, 2).join(" · ")}</span>}
+        {role.score && role.score.redFlags.length > 0 && <span className="text-meta text-warning">{role.score.redFlags.slice(0, 2).join(" · ")}</span>}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {!role.score && !scoringProblem && (
+          <Button size="sm" variant="secondary" aria-disabled={busy !== null || undefined} onClick={() => void score()}>
+            {scoringNow ? "Scoring…" : "Score"}
+          </Button>
+        )}
+        {role.applicationId ? (
+          <Link href={`/applications/${role.applicationId}`} className={buttonClassName("secondary", "sm")}>
+            Open the application
+          </Link>
+        ) : aiReady ? (
+          <Button size="sm" aria-disabled={busy !== null || undefined} onClick={() => void apply()}>
+            {busy === "apply" ? "Opening…" : "Start application"}
+          </Button>
+        ) : null}
+        <Button size="sm" variant="text" aria-disabled={busy !== null || undefined} onClick={() => void dismiss()}>
+          Not for me
+        </Button>
+      </div>
     </div>
   );
 }

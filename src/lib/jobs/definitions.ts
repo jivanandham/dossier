@@ -16,4 +16,5 @@ import "@/lib/agent/jobs";
 import "@/lib/agent/draft";
 import "./score-posting";
 import "@/lib/startups/refresh";
+import "@/lib/startups/jobs";
 import "@/lib/connector/draft";

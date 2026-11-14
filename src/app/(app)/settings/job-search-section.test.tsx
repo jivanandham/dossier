@@ -46,6 +46,7 @@ describe("JobSearchSection", () => {
       "JSearch",
       "Adzuna",
       "FreeHire",
+      "Startup career pages",
       "Bundesagentur für Arbeit",
       "Off",
     ]);
@@ -131,7 +132,7 @@ describe("JobSearchSection", () => {
 
   it("leaves the Arbeitsagentur out when the server doesn't offer it", () => {
     render(<JobSearchSection initial={withSource({ arbeitsagentur: { offered: false, acceptedAt: null } })} />);
-    expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"))).toEqual(["France Travail", "Welcome to the Jungle", "JSearch", "Adzuna", "FreeHire", "Off"]);
+    expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"))).toEqual(["France Travail", "Welcome to the Jungle", "JSearch", "Adzuna", "FreeHire", "Startup career pages", "Off"]);
   });
 
   it("says which FreeHire it searches, with no key to ask for", () => {

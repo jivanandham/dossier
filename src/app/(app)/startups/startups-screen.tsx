@@ -150,7 +150,7 @@ function RefreshStatus({ lastRefresh, refreshing, step, today }: { lastRefresh: 
   const failed = lastRefresh.sources.filter((source) => source.error);
   return (
     <div className="flex flex-col gap-2 text-meta text-muted">
-      <p>
+      <p suppressHydrationWarning>
         Last refreshed {formatDateTime(new Date(lastRefresh.at), undefined, new Date(today))}:{" "}
         {lastRefresh.sources
           .filter((source) => !source.error)

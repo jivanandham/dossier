@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "jeevas-mac-mini.taile5c631.ts.net",
     "*.ts.net",
+    "**.ts.net",
     "localhost",
     "localhost:3000",
     "127.0.0.1",

@@ -671,6 +671,8 @@ enum PostingSource {
   ARBEITSAGENTUR
   FREEHIRE
   WTTJ
+  /// France Travail's official Offres d'emploi v2 API (France).
+  FRANCETRAVAIL
 }
 
 /// A posting from Find jobs that the user kept (E14-5): saved, dismissed, or

@@ -43,6 +43,68 @@ export async function requestJson(
   }
 }
 
+/** An answer from a source with its status and headers, for sources that page with headers or answer 204. */
+export type SourceResponse = { status: number; headers: Headers; body: unknown };
+
+/**
+ * Like requestJson, for sources that need more than a GET: another method
+ * and body, the status and headers back (France Travail pages with
+ * Content-Range), and 204 No Content as a null body. `keyStatuses` are the
+ * statuses that mean a refused key (an OAuth token endpoint answers 400).
+ */
+export async function requestSource(
+  source: JobSource,
+  url: URL,
+  {
+    method = "GET",
+    headers = {},
+    body,
+    signal,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    keyStatuses = [401, 403],
+    maxBytes = MAX_BYTES,
+  }: {
+    method?: "GET" | "POST";
+    headers?: Record<string, string>;
+    body?: URLSearchParams | string;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+    keyStatuses?: readonly number[];
+    /** For reference lists bigger than a page of results. */
+    maxBytes?: number;
+  } = {},
+): Promise<SourceResponse> {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: { accept: "application/json", ...headers },
+      body,
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+      cache: "no-store",
+    });
+  } catch (error) {
+    const reason = timeout.aborted ? "timed out" : ((error as { cause?: { code?: string } }).cause?.code ?? "request failed");
+    throw jobSearchError("unavailable", source, { detail: `${url.pathname}: ${reason}` });
+  }
+
+  const detail = `${url.pathname}: HTTP ${response.status}`;
+  if (keyStatuses.includes(response.status)) throw jobSearchError("key", source, { detail });
+  if (response.status === 429) throw jobSearchError("quota", source, { detail });
+  if (!response.ok) throw jobSearchError(response.status >= 500 ? "unavailable" : "changed", source, { detail });
+  if (response.status === 204) return { status: 204, headers: response.headers, body: null };
+
+  const text = await readLimited(response, maxBytes);
+  if (text === null) throw jobSearchError("changed", source, { detail: `${url.pathname}: answer over ${maxBytes} bytes` });
+  if (text.trim() === "") return { status: response.status, headers: response.headers, body: null };
+  try {
+    return { status: response.status, headers: response.headers, body: JSON.parse(text) as unknown };
+  } catch {
+    throw jobSearchError("changed", source, { detail: `${url.pathname}: not JSON` });
+  }
+}
+
 /** The body as text, or null when it's bigger than `limit` bytes. */
 async function readLimited(response: Response, limit: number): Promise<string | null> {
   if (!response.body) return "";

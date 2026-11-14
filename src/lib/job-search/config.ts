@@ -21,6 +21,8 @@ export type JobSearchConfig = {
   saved: boolean;
   jsearch: { key: string | null; host: JSearchHost; keyState: JobKeyState };
   adzuna: { appId: string; key: string | null; keyState: JobKeyState };
+  /** France Travail's client ID and secret (the secret's state is `keyState`). */
+  francetravail: { clientId: string; key: string | null; keyState: JobKeyState };
   /**
    * The Bundesagentur für Arbeit (#223): whether this server offers it, and
    * when its note was accepted. Its searches wait until then.
@@ -30,7 +32,12 @@ export type JobSearchConfig = {
   freehire: { url: string };
 };
 
-type SavedJobSettings = Pick<SettingsData, "jobSource" | "jsearchKeyEnc" | "jsearchHost" | "adzunaAppId" | "adzunaKeyEnc" | "arbeitsagenturAcceptedAt">;
+type SavedJobSettings = Pick<
+  SettingsData,
+  "jobSource" | "jsearchKeyEnc" | "jsearchHost" | "adzunaAppId" | "adzunaKeyEnc" | "arbeitsagenturAcceptedAt"
+> &
+  // Missing in tests that predate France Travail.
+  Partial<Pick<SettingsData, "franceTravailClientId" | "franceTravailSecretEnc">>;
 type JobEnv = Pick<
   Env,
   | "DOSSIER_JOBS_SOURCE"
@@ -38,6 +45,8 @@ type JobEnv = Pick<
   | "DOSSIER_JSEARCH_HOST"
   | "DOSSIER_ADZUNA_APP_ID"
   | "DOSSIER_ADZUNA_KEY"
+  | "DOSSIER_FRANCETRAVAIL_CLIENT_ID"
+  | "DOSSIER_FRANCETRAVAIL_CLIENT_SECRET"
   | "DOSSIER_FREEHIRE_URL"
   | "DOSSIER_JOBS_ARBEITSAGENTUR"
 >;
@@ -48,6 +57,7 @@ const FROM_ENV: Record<NonNullable<Env["DOSSIER_JOBS_SOURCE"]>, JobSource | null
   arbeitsagentur: "ARBEITSAGENTUR",
   freehire: "FREEHIRE",
   wttj: "WTTJ",
+  francetravail: "FRANCETRAVAIL",
   off: null,
 };
 
@@ -81,6 +91,10 @@ export function resolveJobSearchConfig(saved: SavedJobSettings, source: JobEnv, 
       appId: saved.adzunaAppId ?? source.DOSSIER_ADZUNA_APP_ID ?? "",
       ...keyOf(saved.adzunaKeyEnc, source.DOSSIER_ADZUNA_KEY, secret),
     },
+    francetravail: {
+      clientId: saved.franceTravailClientId ?? source.DOSSIER_FRANCETRAVAIL_CLIENT_ID ?? "",
+      ...keyOf(saved.franceTravailSecretEnc ?? null, source.DOSSIER_FRANCETRAVAIL_CLIENT_SECRET, secret),
+    },
     arbeitsagentur: { offered, acceptedAt: saved.arbeitsagenturAcceptedAt },
     freehire: { url: source.DOSSIER_FREEHIRE_URL ?? FREEHIRE_URL },
   };
@@ -107,6 +121,7 @@ export function jobSearchView(config: JobSearchConfig): JobSearchSettingsView {
     source: config.source ?? "OFF",
     jsearch: { host: config.jsearch.host, keyState: config.jsearch.keyState },
     adzuna: { appId: config.adzuna.appId, keyState: config.adzuna.keyState },
+    francetravail: { clientId: config.francetravail.clientId, keyState: config.francetravail.keyState },
     arbeitsagentur: config.arbeitsagentur,
     freehire: { host: new URL(config.freehire.url).host },
   };
@@ -147,6 +162,11 @@ export function credentialsFor<S extends JobSource>(config: JobSearchConfig, sou
       const { appId, key, keyState } = config.adzuna;
       if (!key || !appId) throw missing(keyState);
       return { appId, key } as SourceCredentials[S];
+    }
+    case "FRANCETRAVAIL": {
+      const { clientId, key, keyState } = config.francetravail;
+      if (!key || !clientId) throw missing(keyState);
+      return { clientId, clientSecret: key } as SourceCredentials[S];
     }
     case "ARBEITSAGENTUR": {
       if (!config.arbeitsagentur.offered) throw jobSearchError("off", source);

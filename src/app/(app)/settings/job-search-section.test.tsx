@@ -19,6 +19,7 @@ const off: JobSearchSettingsView = {
   source: "OFF",
   jsearch: { host: "openwebninja", keyState: "none" },
   adzuna: { appId: "", keyState: "none" },
+  francetravail: { clientId: "", keyState: "none" },
   arbeitsagentur: { offered: true, acceptedAt: null },
   freehire: { host: "freehire.me" },
 };
@@ -36,10 +37,11 @@ beforeEach(() => {
 });
 
 describe("JobSearchSection", () => {
-  it("offers the four sources and Off, as a radio group, Off by default", () => {
+  it("offers the sources and Off, as a radio group, Off by default", () => {
     render(<JobSearchSection initial={off} />);
     expect(screen.getByRole("heading", { name: "Job search" })).toBeInTheDocument();
     expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"))).toEqual([
+      "France Travail",
       "Welcome to the Jungle",
       "JSearch",
       "Adzuna",
@@ -129,7 +131,7 @@ describe("JobSearchSection", () => {
 
   it("leaves the Arbeitsagentur out when the server doesn't offer it", () => {
     render(<JobSearchSection initial={withSource({ arbeitsagentur: { offered: false, acceptedAt: null } })} />);
-    expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"))).toEqual(["Welcome to the Jungle", "JSearch", "Adzuna", "FreeHire", "Off"]);
+    expect(screen.getAllByRole("radio").map((radio) => radio.getAttribute("aria-label"))).toEqual(["France Travail", "Welcome to the Jungle", "JSearch", "Adzuna", "FreeHire", "Off"]);
   });
 
   it("says which FreeHire it searches, with no key to ask for", () => {

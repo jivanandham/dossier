@@ -15,6 +15,7 @@ export type SourceCredentials = {
   ARBEITSAGENTUR: Record<string, never>;
   FREEHIRE: Record<string, never>;
   WTTJ: Record<string, never>;
+  FRANCETRAVAIL: { clientId: string; clientSecret: string };
 };
 
 export type RequestContext = {

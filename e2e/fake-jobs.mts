@@ -185,6 +185,36 @@ createServer((request, response) => {
     return send(response, 200, { count: 1, results: [{ id: "e2e-adzuna", title: "Product Designer", description: "The start…", company: { display_name: "Ledgerly" }, location: { display_name: "Rotterdam" } }] });
   }
 
+  // France Travail: an OAuth2 token, then searches and the communes list with it.
+  if (url.pathname === "/francetravail/token" && request.method === "POST") {
+    return send(response, 200, { access_token: "e2e-francetravail-token", token_type: "Bearer", expires_in: 1499 });
+  }
+  if (url.pathname.startsWith("/francetravail/") && request.headers.authorization !== "Bearer e2e-francetravail-token") {
+    return send(response, 401, { message: "Invalid token" });
+  }
+  if (url.pathname === "/francetravail/referentiel/communes") {
+    return send(response, 200, [
+      { code: "69123", libelle: "LYON", codePostal: "69001", codeDepartement: "69" },
+      { code: "75056", libelle: "PARIS", codePostal: "75001", codeDepartement: "75" },
+    ]);
+  }
+  if (url.pathname === "/francetravail/offres/search") {
+    return send(response, 200, {
+      resultats: [
+        {
+          id: "e2e-ft-1",
+          intitule: "Designer produit (H/F)",
+          description: "Vous concevez nos parcours. Télétravail 2 jours par semaine.",
+          dateCreation: "2026-11-10T09:00:00.000Z",
+          lieuTravail: { libelle: "69 - LYON 03" },
+          entreprise: { nom: "Ledgerly France" },
+          typeContratLibelle: "Contrat à durée indéterminée",
+          salaire: { libelle: "Annuel de 45000.00 Euros à 52000.00 Euros sur 12 mois" },
+        },
+      ],
+    });
+  }
+
   if (url.pathname === "/arbeitsagentur/pc/v6/jobs") {
     return send(response, 200, { ergebnisliste: [{ referenznummer: "e2e-ba", stellenangebotsTitel: "Produktdesigner (m/w/d)", firma: "Hafenlogik GmbH" }], maxErgebnisse: 1 });
   }

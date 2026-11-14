@@ -42,6 +42,7 @@ export function JobSearchSection({ initial }: { initial: JobSearchSettingsView }
   const track = useTrackSave();
   const [view, setView] = useState(initial);
   const [appId, setAppId] = useState(initial.adzuna.appId);
+  const [clientId, setClientId] = useState(initial.francetravail.clientId);
   const [connection, setConnection] = useState<Connection>({ status: "untested" });
   const source = view.source;
 
@@ -77,7 +78,13 @@ export function JobSearchSection({ initial }: { initial: JobSearchSettingsView }
     apply(toastResult(await track(saveJobSearchDetails({ adzunaAppId: appId }))));
   };
 
-  const saveKey = async (keySource: "JSEARCH" | "ADZUNA", change: { action: "set"; value: string } | { action: "clear" }) => {
+  const saveClientId = async () => {
+    if (clientId.trim() === view.francetravail.clientId) return;
+    changed();
+    apply(toastResult(await track(saveJobSearchDetails({ franceTravailClientId: clientId }))));
+  };
+
+  const saveKey = async (keySource: "JSEARCH" | "ADZUNA" | "FRANCETRAVAIL", change: { action: "set"; value: string } | { action: "clear" }) => {
     changed();
     return apply(toastResult(await track(saveJobSourceKey({ source: keySource, change }))));
   };
@@ -166,6 +173,33 @@ export function JobSearchSection({ initial }: { initial: JobSearchSettingsView }
                   onSave={(change) => saveKey("ADZUNA", change)}
                 />
               </div>
+            )}
+            {source === "FRANCETRAVAIL" && (
+              <>
+                <p className="text-sm text-muted">
+                  Create an application on francetravail.io, subscribe it to the &ldquo;Offres d&apos;emploi v2&rdquo; API, then copy its client ID and
+                  secret here. In Find jobs, the place can be a city (&ldquo;Lyon&rdquo;, &ldquo;Saint-Denis (93)&rdquo;), a postcode or a département
+                  number (&ldquo;69&rdquo;).
+                </p>
+                <div className="grid grid-cols-1 gap-x-[18px] gap-y-5 sm:grid-cols-2">
+                  <Input
+                    label="Client ID"
+                    value={clientId}
+                    spellCheck={false}
+                    autoComplete="off"
+                    inputClassName="font-mono text-[13.5px]"
+                    onChange={(event) => setClientId(event.target.value)}
+                    onBlur={() => void saveClientId()}
+                  />
+                  <KeyField
+                    label="Client secret"
+                    keyState={view.francetravail.keyState}
+                    envName="DOSSIER_FRANCETRAVAIL_CLIENT_SECRET"
+                    getKey={{ href: SOURCE_INFO.FRANCETRAVAIL.keyUrl!, text: "francetravail.io" }}
+                    onSave={(change) => saveKey("FRANCETRAVAIL", change)}
+                  />
+                </div>
+              </>
             )}
             {source === "ARBEITSAGENTUR" && (
               <>

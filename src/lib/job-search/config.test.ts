@@ -25,6 +25,7 @@ describe("resolveJobSearchConfig", () => {
       source: "OFF",
       jsearch: { host: "openwebninja", keyState: "none" },
       adzuna: { appId: "", keyState: "none" },
+      francetravail: { clientId: "", keyState: "none" },
       arbeitsagentur: { offered: true, acceptedAt: null },
       freehire: { host: "freehire.me" },
     });
@@ -153,5 +154,33 @@ describe("FreeHire from the environment", () => {
     const own = resolveJobSearchConfig(nothingSaved, { DOSSIER_FREEHIRE_URL: "https://jobs.example:8443" });
     expect(own.freehire).toEqual({ url: "https://jobs.example:8443" });
     expect(jobSearchView(own).freehire).toEqual({ host: "jobs.example:8443" });
+  });
+});
+
+describe("France Travail", () => {
+  it("takes the client ID and secret from Settings, or else the environment", () => {
+    const fromEnv = resolveJobSearchConfig(nothingSaved, {
+      DOSSIER_JOBS_SOURCE: "francetravail",
+      DOSSIER_FRANCETRAVAIL_CLIENT_ID: "PAR_env",
+      DOSSIER_FRANCETRAVAIL_CLIENT_SECRET: "ft-env",
+    });
+    expect(fromEnv).toMatchObject({ source: "FRANCETRAVAIL", francetravail: { clientId: "PAR_env", key: "ft-env", keyState: "env" } });
+    expect(credentialsFor(fromEnv, "FRANCETRAVAIL")).toEqual({ clientId: "PAR_env", clientSecret: "ft-env" });
+
+    const saved = resolveJobSearchConfig(
+      { ...nothingSaved, jobSource: "FRANCETRAVAIL", franceTravailClientId: "PAR_saved", franceTravailSecretEnc: encryptSecret(JOB_SOURCE_KEY, "ft-saved") },
+      { DOSSIER_FRANCETRAVAIL_CLIENT_ID: "PAR_env", DOSSIER_FRANCETRAVAIL_CLIENT_SECRET: "ft-env" },
+    );
+    expect(saved.francetravail).toEqual({ clientId: "PAR_saved", key: "ft-saved", keyState: "set" });
+    expect(jobSearchView(saved).francetravail).toEqual({ clientId: "PAR_saved", keyState: "set" });
+  });
+
+  it("asks for both the client ID and the secret", () => {
+    const secretOnly = resolveJobSearchConfig({ ...nothingSaved, franceTravailSecretEnc: encryptSecret(JOB_SOURCE_KEY, "ft") }, noEnv);
+    expect(() => credentialsFor(secretOnly, "FRANCETRAVAIL")).toThrow("Add your France Travail client ID and secret in Settings → Job search first.");
+  });
+
+  it("points at the end-to-end tests' fake like every source", () => {
+    expect(requestContext("FRANCETRAVAIL", "http://127.0.0.1:3998/")).toEqual({ baseUrl: "http://127.0.0.1:3998/francetravail" });
   });
 });

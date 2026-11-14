@@ -9,6 +9,7 @@ import { fitsExperience } from "./experience";
 import { fitsEmploymentType, matchesExclusion } from "./posting-filters";
 import { adzuna } from "./adzuna";
 import { arbeitsagentur } from "./arbeitsagentur";
+import { francetravail } from "./francetravail";
 import { freehire } from "./freehire";
 import { jsearch } from "./jsearch";
 import { wttj } from "./wttj";
@@ -24,6 +25,7 @@ export type { JSearchHost, RequestContext, SourceCredentials } from "./adapter";
 export { JobSearchError } from "./errors";
 
 const ADAPTERS: { [S in JobSource]: JobSourceAdapter<S> } = {
+  FRANCETRAVAIL: francetravail,
   WTTJ: wttj,
   JSEARCH: jsearch,
   ADZUNA: adzuna,

@@ -8,6 +8,8 @@ export type JobSearchSettingsView = {
   source: JobSource | "OFF";
   jsearch: { host: JSearchHost; keyState: JobKeyState };
   adzuna: { appId: string; keyState: JobKeyState };
+  /** France Travail's client ID, which isn't a secret, and the state of its secret. */
+  francetravail: { clientId: string; keyState: JobKeyState };
   /** Whether this server offers the Bundesagentur für Arbeit, and when its note was accepted (#223). */
   arbeitsagentur: { offered: boolean; acceptedAt: string | null };
   /** The FreeHire it searches: "freehire.me", or a self-hosted one's host (DOSSIER_FREEHIRE_URL). */
@@ -46,6 +48,19 @@ export type SourceInfo = {
 };
 
 export const SOURCE_INFO: Record<JobSource, SourceInfo> = {
+  FRANCETRAVAIL: {
+    name: "France Travail",
+    description:
+      "France's public employment service, through its official API: most jobs in France, with full postings. Place: a city, a postcode or a département number.",
+    tag: "France only · free, client ID and secret · official",
+    keyUrl: "https://francetravail.io",
+    quotaPeriod: null,
+    // Its licence: France Travail named as the source, with a link back.
+    attribution: "Source : France Travail",
+    attributionLink: { home: "https://candidat.francetravail.fr", local: /^candidat\.francetravail\.fr$/ },
+    countries: ["fr"],
+    radius: true,
+  },
   WTTJ: {
     name: "Welcome to the Jungle",
     description: "Tech, startup and digital jobs in France and Europe, with full descriptions and company culture profiles.",

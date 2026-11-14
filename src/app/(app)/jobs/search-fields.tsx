@@ -49,7 +49,7 @@ export function SearchFields({
         onChange={(event) => onChange({ keywords: event.target.value })}
         onBlur={onBlur}
       />
-      <Input label="Where" value={value.place} placeholder="City or region" onChange={(event) => onChange({ place: event.target.value })} onBlur={onBlur} />
+      <Input label="Where" value={value.place} placeholder={source === "FRANCETRAVAIL" ? "Ville, code postal ou département" : "City or region"} onChange={(event) => onChange({ place: event.target.value })} onBlur={onBlur} />
       <Select label="Country" value={value.country} error={errors.country ?? uncovered} onChange={(event) => onChange({ country: event.target.value })}>
         <option value="">Choose a country</option>
         {countries.map((country) => (
@@ -119,7 +119,15 @@ export function RemoteOnlyField({ value, onChange, source }: { value: SearchQuer
       label="Remote only"
       checked={value.remoteOnly}
       onChange={(event) => onChange({ remoteOnly: event.target.checked })}
-      hint={source === "ADZUNA" && value.remoteOnly ? "Adzuna has no remote filter, so this adds “remote” to your search." : undefined}
+      hint={
+        !value.remoteOnly
+          ? undefined
+          : source === "ADZUNA"
+            ? "Adzuna has no remote filter, so this adds “remote” to your search."
+            : source === "FRANCETRAVAIL"
+              ? "France Travail has no remote filter, so this adds “télétravail” to your search."
+              : undefined
+      }
     />
   );
 }

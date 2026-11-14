@@ -1,12 +1,23 @@
 import { connectorSince, exchangeCode, OAuthError, refresh } from "@/lib/connector/oauth";
 
-const NO_STORE = { "cache-control": "no-store", pragma: "no-cache" };
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "authorization, content-type, accept",
+};
+
+const NO_STORE = { "cache-control": "no-store", pragma: "no-cache", ...CORS_HEADERS };
 
 const fail = (error: OAuthError["code"], description: string) => Response.json({ error, error_description: description }, { status: 400, headers: NO_STORE });
 
+export function OPTIONS(): Response {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 /** The token endpoint (RFC 6749 §3.2, #221): codes and refresh tokens for access tokens. Form-encoded, as Claude sends it. */
 export async function POST(request: Request) {
-  if (!(await connectorSince())) return new Response(null, { status: 404 });
+  if (request.method === "OPTIONS") return OPTIONS();
+  if (!(await connectorSince())) return new Response(null, { status: 404, headers: CORS_HEADERS });
   const form = (request.headers.get("content-type") ?? "").includes("application/json")
     ? new URLSearchParams(Object.entries(((await request.json().catch(() => ({}))) ?? {}) as Record<string, string>))
     : new URLSearchParams(await request.text());

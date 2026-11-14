@@ -49,6 +49,31 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        source: "/api/mcp",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, OPTIONS, DELETE" },
+          { key: "Access-Control-Allow-Headers", value: "authorization, content-type, mcp-protocol-version, accept" },
+          { key: "Access-Control-Expose-Headers", value: "www-authenticate, mcp-protocol-version" },
+        ],
+      },
+      {
+        source: "/api/oauth/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "POST, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "authorization, content-type, accept" },
+        ],
+      },
+      {
+        source: "/.well-known/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "authorization, content-type, accept" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },

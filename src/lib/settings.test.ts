@@ -138,6 +138,7 @@ describe("stored settings", () => {
       usagePingChoiceText: null,
       connectorEnabledAt: null,
       connectorRedirects: [],
+      connectorRefused: [],
       browserTimeZone: null,
     });
   });

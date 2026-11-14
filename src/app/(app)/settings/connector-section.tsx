@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { copyText } from "@/lib/copy-text";
 
-import { addConnectorRedirect, disconnectApps, removeConnectorRedirect, setConnector } from "./actions";
+import { addConnectorRedirect, disconnectApps, dismissRefusedRedirects, removeConnectorRedirect, setConnector } from "./actions";
 import { SettingsSectionIntro } from "./settings-screen";
 
 const LINK = "font-medium text-ink underline underline-offset-2";
@@ -26,7 +26,8 @@ export function ConnectorSection({
   address,
   inDesktopApp = false,
 }: {
-  initial: { on: boolean; redirects: string[] };
+  /** `refused`: callback addresses apps last tried to connect with that aren't added (missing in tests before it). */
+  initial: { on: boolean; redirects: string[]; refused?: string[] };
   address: string;
   /** On this computer, in the desktop app: an app's approval page opens in the browser, which the app signs in (#365). */
   inDesktopApp?: boolean;
@@ -34,6 +35,7 @@ export function ConnectorSection({
   const track = useTrackSave();
   const [on, setOn] = useState(initial.on);
   const [redirects, setRedirects] = useState(initial.redirects);
+  const [refused, setRefused] = useState(initial.refused ?? []);
   const [draft, setDraft] = useState("");
   const local = /^http:\/\/(localhost|127\.0\.0\.1)(:|\/)/.test(address);
   const publicHttps = address.startsWith("https://");
@@ -53,6 +55,18 @@ export function ConnectorSection({
     if (!result.ok) return;
     setRedirects(result.data.redirects);
     setDraft("");
+  };
+
+  const allowRefused = async (uri: string) => {
+    const result = toastResult(await track(addConnectorRedirect({ uri })));
+    if (!result.ok) return;
+    setRedirects(result.data.redirects);
+    setRefused((current) => current.filter((entry) => entry !== uri));
+    toast("Added. Connect the app again.");
+  };
+
+  const forgetRefused = async () => {
+    if (toastResult(await track(dismissRefusedRedirects({}))).ok) setRefused([]);
   };
 
   const removeRedirect = async (uri: string) => {
@@ -135,6 +149,27 @@ export function ConnectorSection({
                 exactly as the app shows it (n8n calls it the OAuth Redirect URL). Whoever uses an app you add can read and change your Dossier through it.
               </p>
             </div>
+            {refused.length > 0 && (
+              <div role="note" className="flex flex-col gap-2 rounded-card bg-warning-surface px-4 py-3">
+                <p className="text-meta text-warning">
+                  An app tried to connect with {refused.length === 1 ? "this callback address" : "these callback addresses"}, which {refused.length === 1 ? "isn't" : "aren't"} added, so
+                  Dossier turned it away. Add {refused.length === 1 ? "it" : "the one"} if it was you connecting, such as Gemini; then connect again.
+                </p>
+                <ul aria-label="Refused callback addresses" className="flex flex-col gap-2">
+                  {refused.map((uri) => (
+                    <li key={uri} className="flex flex-wrap items-center gap-3">
+                      <code className="min-w-0 flex-1 font-mono text-[13px] [overflow-wrap:anywhere]">{uri}</code>
+                      <Button variant="secondary" size="sm" onClick={() => void allowRefused(uri)}>
+                        Add <span className="sr-only">{uri}</span>
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+                <Button variant="text" size="sm" className="self-start" onClick={() => void forgetRefused()}>
+                  It wasn&apos;t me
+                </Button>
+              </div>
+            )}
             {redirects.length > 0 && (
               <ul aria-label="Apps' callback addresses" className="flex flex-col gap-2">
                 {redirects.map((uri) => (

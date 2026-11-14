@@ -439,7 +439,9 @@ export const addConnectorRedirect = action(
   async ({ uri }) => {
     const problem = redirectProblem(uri);
     if (problem) throw new ActionError(problem);
-    const { connectorRedirects } = await loadSettings();
+    const { connectorRedirects, connectorRefused } = await loadSettings();
+    // Added now: no longer offered as refused.
+    if (connectorRefused.includes(uri)) await saveSettings({ connectorRefused: connectorRefused.filter((entry) => entry !== uri) });
     if (connectorRedirects.includes(uri)) return { redirects: connectorRedirects };
     if (connectorRedirects.length >= MAX_REDIRECTS) throw new ActionError(`That's ${MAX_REDIRECTS} apps already. Remove one first.`);
     const redirects = [...connectorRedirects, uri];
@@ -447,6 +449,12 @@ export const addConnectorRedirect = action(
     return { redirects };
   },
 );
+
+/** Forgets the callback addresses apps were refused with, without adding them. */
+export const dismissRefusedRedirects = action(z.object({}), async () => {
+  await saveSettings({ connectorRefused: [] });
+  return null;
+});
 
 /** Stops an app signing in again by that address. One signed in already keeps its tokens until Disconnect all apps. */
 export const removeConnectorRedirect = action(z.object({ uri: z.string().max(2000) }), async ({ uri }) => {

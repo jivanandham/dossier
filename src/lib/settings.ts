@@ -297,6 +297,8 @@ export const settingsSchema = z.object({
   connectorEnabledAt: z.iso.datetime().nullable().catch(null),
   /** Other MCP apps' callback addresses, allowed like Claude's (#281). The install's too: an import must never add one. */
   connectorRedirects: stringList.catch([]),
+  /** Callback addresses apps last tried to register with that weren't allowed, newest first, for Settings to offer adding. */
+  connectorRefused: stringList.catch([]),
   // The browser's time zone as it last told the server, for work done
   // without a request, such as the inbox check (time-zone.ts). It belongs
   // to the install, not its data, so exports leave it out (INSTALL_SETTINGS).

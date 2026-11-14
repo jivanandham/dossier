@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-import { addedRedirects, allowedRedirect, connectorSince, isClaudeRedirect, registerClient } from "@/lib/connector/oauth";
+import { addedRedirects, allowedRedirect, connectorSince, isClaudeRedirect, redirectProblem, registerClient } from "@/lib/connector/oauth";
+import { loadSettings, saveSettings } from "@/lib/settings-data";
 
 const registration = z.object({
   redirect_uris: z.array(z.string().max(2000)).min(1).max(10),
@@ -34,7 +35,15 @@ export async function POST(request: Request) {
     );
   }
   const added = await addedRedirects();
-  if (body.data.redirect_uris.some((uri) => !allowedRedirect(uri, added))) {
+  const refused = body.data.redirect_uris.filter((uri) => !allowedRedirect(uri, added));
+  if (refused.length > 0) {
+    // Kept for Settings → MCP connector to offer adding, exactly as the app sent it; only ones that could be added.
+    const addable = refused.filter((uri) => redirectProblem(uri) === null);
+    if (addable.length > 0) {
+      const earlier = (await loadSettings()).connectorRefused;
+      await saveSettings({ connectorRefused: [...new Set([...addable, ...earlier])].slice(0, 5) });
+    }
+    console.warn(`MCP connector: refused an app's registration; callback addresses not added in Settings → MCP connector: ${refused.join(", ")}`);
     return Response.json(
       { error: "invalid_redirect_uri", error_description: "Only Claude's callback addresses and those added in Dossier's Settings → MCP connector are allowed." },
       { status: 400, headers: CORS_HEADERS },

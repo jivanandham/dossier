@@ -112,7 +112,7 @@ export default async function SettingsPage({ searchParams }: PageProps<"/setting
         </>
       ) : section === "connector" ? (
         <ConnectorSection
-          initial={{ on: settings.connectorEnabledAt !== null, redirects: settings.connectorRedirects }}
+          initial={{ on: settings.connectorEnabledAt !== null, redirects: settings.connectorRedirects, refused: settings.connectorRefused }}
           address={mcpUrl(env.DOSSIER_PUBLIC_URL ?? (await requestOrigin()))}
           inDesktopApp={isDesktopApp()}
         />

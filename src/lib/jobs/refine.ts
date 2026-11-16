@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { ChatRole, DocumentKind, VersionCause } from "@/generated/prisma/enums";
+import { AiProvider, ChatRole, DocumentKind, VersionCause } from "@/generated/prisma/enums";
 import { getAiProvider } from "@/lib/ai";
 import { loadTaskOptions } from "@/lib/ai/task-options";
 import { refineChat, type ChatTurn } from "@/lib/ai/tasks";
@@ -41,6 +41,7 @@ export const refineJob = defineJob({
     target: unitRef.nullable(),
     /** The document on screen. */
     viewing: z.enum(DocumentKind).nullable(),
+    provider: z.enum(AiProvider).nullable().optional(),
     model: z.string().nullable().optional(),
   }),
   result: z.object({
@@ -49,7 +50,7 @@ export const refineJob = defineJob({
     /** The units it changed, to show them. */
     edited: z.array(unitRef),
   }),
-  async run({ applicationId, messageId, request, target, viewing, model: modelOverride }, { step, signal }) {
+  async run({ applicationId, messageId, request, target, viewing, provider: providerOverride, model: modelOverride }, { step, signal }) {
     await step("Thinking");
     const application = await prisma.application.findUniqueOrThrow({
       where: { id: applicationId },
@@ -73,7 +74,7 @@ export const refineJob = defineJob({
     const targetUnit = target && unitsOf(target.document).find((unit) => unit.id === target.unitId);
 
     const [provider, options, profile, facts] = await Promise.all([
-      getAiProvider(modelOverride),
+      getAiProvider(providerOverride, modelOverride),
       loadTaskOptions(),
       profileOfApplication(application.frozen),
       loadFactTexts(applicationId),

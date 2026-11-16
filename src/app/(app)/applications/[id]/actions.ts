@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
-import { ChatRole, DocumentKind, VersionCause } from "@/generated/prisma/enums";
+import { AiProvider, ChatRole, DocumentKind, VersionCause } from "@/generated/prisma/enums";
 import { action, ActionError } from "@/lib/action";
 import { isAiConfigured } from "@/lib/ai/config";
 import { profileUnits } from "@/lib/ai/tasks/tailor-resume";
@@ -344,9 +344,10 @@ export const sendMessage = action(
     viewing: z.enum(DocumentKind).nullable(),
     /** The unit picked with "Ask AI". */
     target: z.object({ document: z.enum(DocumentKind), unitId: z.string().min(1) }).nullable(),
+    provider: z.enum(AiProvider).nullable().optional(),
     model: z.string().nullable().optional(),
   }),
-  async ({ id, text, viewing, target, model }) => {
+  async ({ id, text, viewing, target, provider, model }) => {
     if (!(await prisma.application.count({ where: { id } }))) throw new ActionError(GONE);
 
     if (!viewing && !target) {
@@ -377,7 +378,7 @@ export const sendMessage = action(
       data: { applicationId: id, role: ChatRole.USER, text, targetUnit: targetLabel },
       select: { id: true },
     });
-    const jobId = await startJob(refineJob, { applicationId: id, messageId: message.id, request: text, target, viewing, model }, { key: refineJobKey(id), applicationId: id });
+    const jobId = await startJob(refineJob, { applicationId: id, messageId: message.id, request: text, target, viewing, provider, model }, { key: refineJobKey(id), applicationId: id });
     refresh(id);
     return { jobId };
   },
@@ -625,16 +626,17 @@ export const startWritingDocument = action(
   z.object({
     id: z.string().min(1),
     kind: z.enum([DocumentKind.RESUME, DocumentKind.COVER_LETTER]),
+    provider: z.enum(AiProvider).nullable().optional(),
     model: z.string().nullable().optional(),
   }),
-  async ({ id, kind, model }) => {
+  async ({ id, kind, provider, model }) => {
     const application = await prisma.application.findUnique({ where: { id }, select: { documents: { select: { kind: true } } } });
     if (!application) throw new ActionError(GONE);
     if (application.documents.some((document) => document.kind === kind)) throw new ActionError("It's been written already. Reload the page to see it.");
     if (!(await isAiConfigured())) throw new ActionError("That needs an AI provider. Choose one in Settings → AI provider.");
     const key = writeDocumentJobKey(id, kind);
     const [running] = await findUnfinishedJobs(key);
-    return running?.id ?? startJob(writeDocumentJob, { applicationId: id, kind, model }, { key, applicationId: id });
+    return running?.id ?? startJob(writeDocumentJob, { applicationId: id, kind, provider, model }, { key, applicationId: id });
   },
 );
 

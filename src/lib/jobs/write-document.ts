@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
-import { DocumentKind, VersionCause } from "@/generated/prisma/enums";
+import { AiProvider, DocumentKind, VersionCause } from "@/generated/prisma/enums";
 import { getAiProvider } from "@/lib/ai";
 import { loadTaskOptions } from "@/lib/ai/task-options";
 import { tailorResume, writeCoverLetter } from "@/lib/ai/tasks";
@@ -36,16 +36,17 @@ export const writeDocumentJob = defineJob({
   input: z.object({
     applicationId: z.string().min(1),
     kind: z.enum(WRITABLE),
+    provider: z.enum(AiProvider).nullable().optional(),
     model: z.string().nullable().optional(),
   }),
   result: z.object({ applicationId: z.string() }),
-  async run({ applicationId, kind, model: modelOverride }, { step, signal }) {
+  async run({ applicationId, kind, provider: providerOverride, model: modelOverride }, { step, signal }) {
     await step(kind === DocumentKind.RESUME ? "Tailoring your resume" : "Writing your cover letter");
     const application = await prisma.application.findUniqueOrThrow({ where: { id: applicationId }, include: { documents: { select: { kind: true } } } });
     if (application.documents.some((document) => document.kind === kind)) return { applicationId };
 
     const [provider, options, fullProfile, settings, facts] = await Promise.all([
-      getAiProvider(modelOverride),
+      getAiProvider(providerOverride, modelOverride),
       loadTaskOptions(),
       loadProfile(),
       loadSettings(),

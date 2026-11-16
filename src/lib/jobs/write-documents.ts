@@ -2,7 +2,7 @@ import "server-only";
 
 import { z } from "zod";
 
-import { Tone } from "@/generated/prisma/enums";
+import { AiProvider, Tone } from "@/generated/prisma/enums";
 import { getAiProvider } from "@/lib/ai";
 import { loadTaskOptions } from "@/lib/ai/task-options";
 import { tailorResume, writeCoverLetter } from "@/lib/ai/tasks";
@@ -36,14 +36,16 @@ export const writeDocumentsJob = defineJob({
     note: z.string().max(2000),
     /** Which documents to write (#367); the job agent and the connector write both. */
     write: z.enum(DOCUMENTS_TO_WRITE).default("both"),
-    /** Optional model override for the active AI provider. */
+    /** Optional provider override. */
+    provider: z.enum(AiProvider).nullable().optional(),
+    /** Optional model override for the selected or active AI provider. */
     model: z.string().nullable().optional(),
   }),
   result: z.object({ resume: unitsSchema, resumeWith: z.string(), letter: unitsSchema, letterWith: z.string() }),
-  async run({ posting, extracted, match, tone, note, write, model: modelOverride }, { step, signal }) {
+  async run({ posting, extracted, match, tone, note, write, provider: providerOverride, model: modelOverride }, { step, signal }) {
     await step(write === "letter" ? WRITE_DOCUMENTS_STEPS[1] : WRITE_DOCUMENTS_STEPS[0]);
     const [provider, options, fullProfile, settings] = await Promise.all([
-      getAiProvider(modelOverride),
+      getAiProvider(providerOverride, modelOverride),
       loadTaskOptions(),
       loadProfile(),
       loadSettings(),

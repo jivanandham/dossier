@@ -431,7 +431,7 @@ export function ApplicationView({
   };
 
   /** Sends a chat message (E8-5); resolves to whether it went. */
-  const send = (text: string, model?: string | null) =>
+  const send = (text: string, provider?: AiProvider | null, model?: string | null) =>
     new Promise<boolean>((resolve) => {
       const viewing = onScreen();
       if ((viewing || target) && !aiReady) {
@@ -445,6 +445,7 @@ export function ApplicationView({
           text,
           viewing,
           target: target && { document: target.document, unitId: target.unitId },
+          ...(provider ? { provider } : {}),
           ...(model ? { model } : {}),
         });
         if (!result.ok) {

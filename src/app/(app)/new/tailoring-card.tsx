@@ -8,6 +8,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Textarea } from "@/components/ui/textarea";
 import type { AiProvider } from "@/generated/prisma/enums";
 import { Tone } from "@/generated/prisma/enums";
+import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
 import { DOCUMENTS_TO_WRITE, type DocumentsToWrite } from "@/lib/settings";
 import { TONES } from "@/lib/tones";
 
@@ -22,39 +23,62 @@ export function TailoringCard({
   note,
   model,
   provider,
+  selectedProvider,
   defaultModel,
   onWrite,
   onTone,
   onNote,
   onModel,
+  onProvider,
 }: {
   write: DocumentsToWrite;
   tone: Tone;
   note: string;
   model: string | null;
   provider?: AiProvider | null;
+  selectedProvider?: AiProvider | null;
   defaultModel?: string | null;
   onWrite: (write: DocumentsToWrite) => void;
   onTone: (tone: Tone) => void;
   onNote: (note: string) => void;
   onModel: (model: string | null) => void;
+  onProvider?: (provider: AiProvider | null) => void;
 }) {
   const writeId = useId();
   const labelId = useId();
   const descriptionId = useId();
+  const effectiveProvider = selectedProvider ?? provider;
+  const defaultProviderName = provider ? providerOption(provider)?.name : "Settings default";
+
   return (
     <Card className="flex flex-col gap-5 py-6">
       <h2 className="text-[15px] font-medium">Tailoring</h2>
       <div className="flex flex-col gap-[9px]">
-        <span className="text-label text-muted">AI Model</span>
+        <span className="text-label text-muted">AI Provider & Model</span>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <select
+            aria-label="AI Provider"
+            className="h-9 rounded-control border border-line bg-canvas px-3 py-1.5 text-sm font-medium text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+            value={selectedProvider ?? ""}
+            onChange={(e) => {
+              const next = e.target.value ? (e.target.value as AiProvider) : null;
+              onProvider?.(next);
+            }}
+          >
+            <option value="">Default ({defaultProviderName})</option>
+            {PROVIDER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.name}
+              </option>
+            ))}
+          </select>
           <AiModelSelector
-            provider={provider}
+            provider={effectiveProvider}
             defaultModel={defaultModel}
             value={model}
             onChange={onModel}
           />
-          <span className="text-meta text-muted">Model used to tailor your documents for this application.</span>
+          <span className="text-meta text-muted">Provider and model used to tailor your documents for this application.</span>
         </div>
       </div>
       <div className="flex flex-col gap-[9px]">

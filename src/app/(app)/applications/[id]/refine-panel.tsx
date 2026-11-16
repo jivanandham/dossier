@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AiModelSelector } from "@/components/ai-model-selector";
 import { Button } from "@/components/ui/button";
 import type { AiProvider } from "@/generated/prisma/enums";
+import { getDefaultModelForProvider } from "@/lib/ai/models";
+import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
 import { cn } from "@/lib/cn";
 
 import type { Tab } from "./tabs";
@@ -63,7 +65,7 @@ export function RefinePanel({
   target: ChatTarget | null;
   onClearTarget: () => void;
   /** Resolves to whether the message was sent; the box keeps it otherwise. */
-  onSend: (text: string, model?: string | null) => Promise<boolean>;
+  onSend: (text: string, provider?: AiProvider | null, model?: string | null) => Promise<boolean>;
   aiReady: boolean;
   /** Goes up when the box should take focus, e.g. after "Ask AI". */
   focusRequest: number;
@@ -73,6 +75,7 @@ export function RefinePanel({
   children?: (message: ChatEntry) => ReactNode;
 }) {
   const [draft, setDraft] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState<AiProvider | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const input = useRef<HTMLTextAreaElement>(null);
 
@@ -83,7 +86,7 @@ export function RefinePanel({
   const send = async (text: string) => {
     if (!text.trim() || thinking) return;
     setDraft("");
-    if (!(await onSend(text.trim(), selectedModel))) setDraft(text);
+    if (!(await onSend(text.trim(), selectedProvider, selectedModel))) setDraft(text);
   };
 
   return (
@@ -168,14 +171,33 @@ export function RefinePanel({
               }}
               className="w-full resize-none bg-transparent text-sm leading-normal text-ink outline-none placeholder:text-muted"
             />
-            <div className="flex items-center justify-between gap-2">
-              <AiModelSelector
-                size="sm"
-                provider={provider}
-                defaultModel={defaultModel}
-                value={selectedModel}
-                onChange={setSelectedModel}
-              />
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <select
+                  aria-label="AI Provider"
+                  className="h-7 rounded-control border border-line bg-canvas px-2 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+                  value={selectedProvider ?? ""}
+                  onChange={(e) => {
+                    const next = e.target.value ? (e.target.value as AiProvider) : null;
+                    setSelectedProvider(next);
+                    setSelectedModel(getDefaultModelForProvider(next));
+                  }}
+                >
+                  <option value="">Default ({provider ? providerOption(provider)?.name : "Settings default"})</option>
+                  {PROVIDER_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.name}
+                    </option>
+                  ))}
+                </select>
+                <AiModelSelector
+                  size="sm"
+                  provider={selectedProvider ?? provider}
+                  defaultModel={defaultModel}
+                  value={selectedModel}
+                  onChange={setSelectedModel}
+                />
+              </div>
               <Button size="sm" className="px-3.5 py-[7px]" aria-disabled={thinking || !draft.trim() || undefined} onClick={() => void send(draft)}>
                 Send
               </Button>

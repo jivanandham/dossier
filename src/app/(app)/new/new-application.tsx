@@ -13,6 +13,7 @@ import { Stepper } from "@/components/ui/stepper";
 import { Textarea } from "@/components/ui/textarea";
 import type { AiProvider, Tone } from "@/generated/prisma/enums";
 import { useJob } from "@/hooks/use-job";
+import { getDefaultModelForProvider } from "@/lib/ai/models";
 import type { DocumentsToWrite } from "@/lib/settings";
 import { withSkillAdded, type Extracted } from "@/lib/application-data";
 import type { PostingFit } from "@/lib/fit";
@@ -59,8 +60,10 @@ export type Draft = {
   details: Details;
   tone: Tone;
   note: string;
-  /** Optional model override for the active AI provider. */
+  /** Optional model override for the selected AI provider. */
   model?: string | null;
+  /** Optional provider override. */
+  provider?: AiProvider | null;
   /** Which documents to write (#367); missing in drafts from before, which wrote both. */
   write?: DocumentsToWrite;
   writeJobId: string | null;
@@ -358,6 +361,7 @@ export function NewApplication({
         tone: draft.tone,
         note: draft.note,
         write: draft.write ?? "both",
+        ...(draft.provider ? { provider: draft.provider } : {}),
         ...(draft.model ? { model: draft.model } : {}),
       }),
     );
@@ -498,11 +502,13 @@ export function NewApplication({
                 note={draft.note}
                 model={draft.model ?? null}
                 provider={aiProvider}
+                selectedProvider={draft.provider ?? null}
                 defaultModel={defaultModel}
                 onWrite={(write) => update({ write })}
                 onTone={(tone) => update({ tone })}
                 onNote={(note) => update({ note })}
                 onModel={(model) => update({ model })}
+                onProvider={(provider) => update({ provider, model: getDefaultModelForProvider(provider) })}
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Button variant="text" onClick={() => update({ step: "paste" })}>

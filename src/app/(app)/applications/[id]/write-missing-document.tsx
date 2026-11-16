@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { AiModelSelector } from "@/components/ai-model-selector";
 import type { AiProvider } from "@/generated/prisma/enums";
 import { useJob } from "@/hooks/use-job";
+import { getDefaultModelForProvider } from "@/lib/ai/models";
+import { PROVIDER_OPTIONS, providerOption } from "@/lib/ai/provider-options";
 import type { WritableKind } from "@/lib/jobs/write-document";
 
 import { startWritingDocument } from "./actions";
@@ -37,6 +39,7 @@ export function WriteMissingDocument({
 }) {
   const router = useRouter();
   const [jobId, setJobId] = useState(writing);
+  const [selectedProvider, setSelectedProvider] = useState<AiProvider | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [starting, startTransition] = useTransition();
   const job = useJob(jobId, 0, (update) => {
@@ -50,7 +53,12 @@ export function WriteMissingDocument({
 
   const write = () =>
     startTransition(async () => {
-      const result = await startWritingDocument({ id: applicationId, kind, ...(selectedModel ? { model: selectedModel } : {}) });
+      const result = await startWritingDocument({
+        id: applicationId,
+        kind,
+        ...(selectedProvider ? { provider: selectedProvider } : {}),
+        ...(selectedModel ? { model: selectedModel } : {}),
+      });
       if (!result.ok) return toast(result.error);
       setJobId(result.data);
     });
@@ -68,11 +76,29 @@ export function WriteMissingDocument({
             <Button variant="secondary" disabled={busy} onClick={write}>
               {busy ? "Writing…" : `Write the ${NAMES[kind]}`}
             </Button>
-            <div className="flex items-center gap-2 text-xs text-muted">
+            <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted">
+              <span>Provider:</span>
+              <select
+                aria-label="AI Provider"
+                className="h-7 rounded-control border border-line bg-canvas px-2 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-ink"
+                value={selectedProvider ?? ""}
+                onChange={(e) => {
+                  const next = e.target.value ? (e.target.value as AiProvider) : null;
+                  setSelectedProvider(next);
+                  setSelectedModel(getDefaultModelForProvider(next));
+                }}
+              >
+                <option value="">Default ({provider ? providerOption(provider)?.name : "Settings default"})</option>
+                {PROVIDER_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.name}
+                  </option>
+                ))}
+              </select>
               <span>Model:</span>
               <AiModelSelector
                 size="sm"
-                provider={provider}
+                provider={selectedProvider ?? provider}
                 defaultModel={defaultModel}
                 value={selectedModel}
                 onChange={setSelectedModel}

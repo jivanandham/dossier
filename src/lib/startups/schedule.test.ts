@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { startDueStartupsRefresh, startStartupsSchedule, startupsRefreshDue } from "./schedule";
+import { startDueStartupsRefresh, startStartupsSchedule, startupJobsDue, startupsRefreshDue } from "./schedule";
 
 const state = vi.hoisted(() => ({
   settings: { startupsViewedAt: null as string | null, startupsLastRefresh: null as { at: string } | null },
@@ -38,6 +38,12 @@ describe("Startups' daily refresh (#222)", () => {
     state.settings = { startupsViewedAt: null, startupsLastRefresh: null };
     expect(await startDueStartupsRefresh(now)).toBeNull();
     expect(start).toHaveBeenCalledTimes(1);
+  });
+
+  it("checks board refreshes daily", () => {
+    expect(startupJobsDue({ startupJobsLastRun: null }, now)).toBe(true);
+    expect(startupJobsDue({ startupJobsLastRun: { at: hoursAgo(21), startups: 1, boards: 1, jobs: 1, added: 0, scored: 0, problem: null } }, now)).toBe(false);
+    expect(startupJobsDue({ startupJobsLastRun: { at: hoursAgo(23), startups: 1, boards: 1, jobs: 1, added: 0, scored: 0, problem: null } }, now)).toBe(true);
   });
 
   it("starts one timer per process", () => {

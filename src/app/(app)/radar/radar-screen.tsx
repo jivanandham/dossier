@@ -25,6 +25,11 @@ import {
   scoreStartupRole,
   startApplicationFromRole,
 } from "../startups/actions";
+import {
+  refreshRadarJobsAction,
+  trackCompanyAction,
+  untrackCompanyAction,
+} from "./actions";
 
 export function RadarScreen({ data }: { data: RadarData }) {
   const [tab, setTab] = useState<RadarTab>("roles");
@@ -37,6 +42,8 @@ export function RadarScreen({ data }: { data: RadarData }) {
       />
 
       <div className="flex flex-col gap-6 px-4 sm:px-6 md:px-10 pb-12 sm:pb-20">
+        <TrackCompanyBar />
+
         {/* Navigation Tabs */}
         <nav aria-label="Radar sections" className="flex flex-wrap gap-2 border-b border-line pb-3">
           <button
@@ -93,6 +100,135 @@ export function RadarScreen({ data }: { data: RadarData }) {
         {tab === "intelligence" && <IntelligenceTab data={data} />}
       </div>
     </>
+  );
+}
+
+function TrackCompanyBar({ onTracked }: { onTracked?: () => void }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+    setBusy(true);
+    try {
+      const res = await trackCompanyAction({ url: url.trim(), name: name.trim() || undefined });
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      const data = res.data;
+      const boardMsg = data.boardName ? ` (${data.boardName})` : "";
+      const rolesMsg = data.rolesCount > 0 ? ` Found ${data.rolesCount} open roles.` : "";
+      toast(`Tracking ${data.company}${boardMsg}!${rolesMsg} Checked daily.`);
+      setUrl("");
+      setName("");
+      setOpen(false);
+      router.refresh();
+      onTracked?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCheckNow = async () => {
+    setChecking(true);
+    try {
+      const res = await refreshRadarJobsAction({});
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      toast("Checking all company boards for new roles in the background…");
+      router.refresh();
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 rounded-card border border-line bg-paper p-4 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-semibold text-ink">Daily Company Radar</span>
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800 dark:text-emerald-400">
+              <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Auto-checks daily
+            </span>
+          </div>
+          <p className="text-sm text-muted">
+            Add any company&apos;s career or job board URL. Dossier keeps it in your radar, indexes its open roles, and scans it everyday for new openings.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            aria-disabled={checking || undefined}
+            onClick={handleCheckNow}
+            title="Scan all company job boards for new roles right now"
+          >
+            {checking ? "Checking boards…" : "Check boards now"}
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            variant={open ? "secondary" : "primary"}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? "Close" : "+ Track company"}
+          </Button>
+        </div>
+      </div>
+
+      {open && (
+        <form onSubmit={handleSubmit} className="mt-2 pt-3 border-t border-line flex flex-col sm:flex-row items-end gap-3">
+          <div className="flex-1 w-full flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-ink">
+              Company Careers or ATS Job Board URL <span className="text-error">*</span>
+            </label>
+            <Input
+              type="url"
+              placeholder="e.g. https://jobs.lever.co/company or https://company.com/careers"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="w-full sm:w-48 flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-ink">
+              Company Name <span className="text-muted font-normal">(optional)</span>
+            </label>
+            <Input
+              type="text"
+              placeholder="e.g. Acme Tech"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            className="w-full sm:w-auto shrink-0"
+            aria-disabled={busy || !url.trim() || undefined}
+          >
+            {busy ? "Scanning board…" : "Add to Radar"}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 }
 
@@ -327,8 +463,26 @@ function RadarRoleCard({
 // ─────────────────────────────────────────────────────────────────────────────
 
 function CompanyPoliciesTab({ companies }: { companies: RadarCompanyItem[] }) {
+  const router = useRouter();
   const [filterTier, setFilterTier] = useState<RemotePolicyTier | "ALL">("ALL");
   const [search, setSearch] = useState("");
+  const [untrackingId, setUntrackingId] = useState<string | null>(null);
+
+  const handleUntrack = async (id: string, name: string) => {
+    if (!window.confirm(`Stop tracking ${name} on Radar?`)) return;
+    setUntrackingId(id);
+    try {
+      const res = await untrackCompanyAction({ id });
+      if (!res.ok) {
+        toast(res.error);
+        return;
+      }
+      toast(`Removed ${name} from Radar.`);
+      router.refresh();
+    } finally {
+      setUntrackingId(null);
+    }
+  };
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase().trim();
@@ -399,7 +553,14 @@ function CompanyPoliciesTab({ companies }: { companies: RadarCompanyItem[] }) {
           >
             <div className="flex items-start justify-between gap-2">
               <div>
-                <h3 className="font-serif text-lg font-medium text-ink">{c.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif text-lg font-medium text-ink">{c.name}</h3>
+                  {c.tracked && (
+                    <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 text-[11px] font-medium whitespace-nowrap">
+                      Tracked Daily
+                    </span>
+                  )}
+                </div>
                 <p className="text-meta text-muted">{c.location}</p>
               </div>
               <span
@@ -456,6 +617,18 @@ function CompanyPoliciesTab({ companies }: { companies: RadarCompanyItem[] }) {
                   >
                     Careers ↗
                   </a>
+                )}
+                {c.tracked && (
+                  <Button
+                    size="sm"
+                    variant="text"
+                    aria-disabled={untrackingId === c.id || undefined}
+                    onClick={() => void handleUntrack(c.id, c.name)}
+                    className="text-muted hover:text-error text-xs px-1.5"
+                    title="Stop tracking this company"
+                  >
+                    {untrackingId === c.id ? "Untracking…" : "Untrack"}
+                  </Button>
                 )}
               </div>
             </div>

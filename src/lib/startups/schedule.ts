@@ -33,12 +33,30 @@ export async function startDueStartupsRefresh(now = new Date()): Promise<string 
   return startStartupsRefresh();
 }
 
+/** Whether the daily check of Radar companies and startup boards is due. */
+export function startupJobsDue(settings: Pick<SettingsData, "startupJobsLastRun">, now: Date): boolean {
+  const last = settings.startupJobsLastRun;
+  if (!last) return true;
+  return now.getTime() - Date.parse(last.at) >= AGE_MS;
+}
+
+/** Starts the day's board check for Radar companies and startups when due. */
+export async function startDueStartupJobsRefresh(now = new Date()): Promise<string | null> {
+  if (!startupJobsDue(await loadSettings(), now)) return null;
+  const { startStartupJobs, STARTUP_JOBS_KEY } = await import("./jobs");
+  if ((await findUnfinishedJobs(STARTUP_JOBS_KEY)).length > 0) return null;
+  return startStartupJobs();
+}
+
 const globalForStartups = globalThis as unknown as { startupsTimer?: ReturnType<typeof setInterval> };
 
 /** Starts the timer, once per process (dev reloads keep the one they have). */
 export function startStartupsSchedule(): void {
   if (globalForStartups.startupsTimer) return;
-  const check = () => void startDueStartupsRefresh().catch((error: unknown) => logServerError("startups schedule", error));
+  const check = () => {
+    void startDueStartupsRefresh().catch((error: unknown) => logServerError("startups schedule", error));
+    void startDueStartupJobsRefresh().catch((error: unknown) => logServerError("startup jobs schedule", error));
+  };
   globalForStartups.startupsTimer = setInterval(check, EVERY_MS);
   // Don't keep the process alive just for this.
   globalForStartups.startupsTimer.unref?.();

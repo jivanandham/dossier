@@ -36,6 +36,8 @@ export type RadarCompanyItem = {
   boardUrl: string;
   jobCount: number;
   keyRoles: string[];
+  tracked?: boolean;
+  source?: string;
 };
 
 export type RadarEcosystemItem = {

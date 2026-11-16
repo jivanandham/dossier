@@ -51,13 +51,31 @@ const words = (text: string) => fold(text).split(/[^a-z0-9+#]+/).filter((word) =
 
 type StartupRow = Awaited<ReturnType<typeof startupsToRead>>[number];
 
-const startupsToRead = (take: number) =>
-  prisma.startup.findMany({
-    where: { status: { in: [StartupStatus.NEW, StartupStatus.SAVED, StartupStatus.CONTACTED] } },
-    orderBy: { score: "desc" },
-    take,
+const startupsToRead = async (take: number) => {
+  const tracked = await prisma.startup.findMany({
+    where: {
+      OR: [
+        { source: "RADAR" },
+        { status: StartupStatus.SAVED },
+      ],
+    },
     select: { id: true, company: true, website: true, details: true, links: true, board: true },
   });
+
+  const trackedIds = new Set(tracked.map((s) => s.id));
+  const remaining = Math.max(0, take - tracked.length);
+  const others = remaining > 0 ? await prisma.startup.findMany({
+    where: {
+      id: { notIn: [...trackedIds] },
+      status: { in: [StartupStatus.NEW, StartupStatus.CONTACTED] },
+    },
+    orderBy: { score: "desc" },
+    take: remaining,
+    select: { id: true, company: true, website: true, details: true, links: true, board: true },
+  }) : [];
+
+  return [...tracked, ...others];
+};
 
 /** The startup's board: the one kept, while it's recent, or else looked for again and kept. */
 async function boardOf(startup: StartupRow, now: Date): Promise<Board | null> {
@@ -78,7 +96,7 @@ async function boardOf(startup: StartupRow, now: Date): Promise<Board | null> {
 }
 
 /** Reads a board and keeps its roles, ranked; roles it no longer lists go. Returns how many it lists and how many are new. */
-async function keepRoles(startupId: string, board: Board, profile: ProfileData, place: Place, now: Date, signal: AbortSignal): Promise<{ listed: number; added: number }> {
+export async function keepRoles(startupId: string, board: Board, profile: ProfileData, place: Place, now: Date, signal: AbortSignal): Promise<{ listed: number; added: number }> {
   let found: BoardJob[];
   try {
     found = (await readBoard(board, signal)).filter((job) => job.title.trim()).slice(0, ROLES_PER_BOARD);

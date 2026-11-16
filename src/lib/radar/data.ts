@@ -165,6 +165,8 @@ export async function loadRadarData(): Promise<RadarData> {
       where: { status: { not: StartupStatus.DISMISSED } },
       select: {
         id: true,
+        source: true,
+        status: true,
         company: true,
         website: true,
         summary: true,
@@ -245,6 +247,8 @@ export async function loadRadarData(): Promise<RadarData> {
       ? (s.links as { label?: string; url?: string }[]).find((l) => /career|job/i.test(l.label ?? ""))?.url ?? ""
       : "";
 
+    const isTracked = s.source === "RADAR" || s.status === StartupStatus.SAVED;
+
     return {
       id: s.id,
       name: s.company,
@@ -258,12 +262,17 @@ export async function loadRadarData(): Promise<RadarData> {
       boardUrl: parsed ? boardUrl(parsed) : "",
       jobCount: jobCountByStartup.get(s.id) ?? 0,
       keyRoles: rolesList.slice(0, 4),
+      tracked: isTracked,
+      source: s.source,
     };
   });
 
-  // Sort companies: full remote first, then remote france, then hybrid; within tier by role count desc
+  // Sort companies: tracked first, then full remote, then remote france, then hybrid; within tier by role count desc
   const tierWeight: Record<RemotePolicyTier, number> = { FULLY_REMOTE: 0, REMOTE_FRANCE: 1, HYBRID: 2 };
   companies.sort((a, b) => {
+    if (Boolean(a.tracked) !== Boolean(b.tracked)) {
+      return a.tracked ? -1 : 1;
+    }
     if (tierWeight[a.policyTier] !== tierWeight[b.policyTier]) {
       return tierWeight[a.policyTier] - tierWeight[b.policyTier];
     }
